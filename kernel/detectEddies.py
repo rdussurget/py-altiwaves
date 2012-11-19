@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
@@ -5,13 +6,31 @@ import alti_tools as AT
 import scipy.interpolate
 
 import matplotlib.pyplot as plt
+from pyglet.event import EventException
 
 '''
 Created on 9 nov. 2012
 
 @author: rdussurg
 '''
-def _2D(sa_spectrum, sa_lscales, win_width=5., amplim=3., len_range=[60.,450.]):
+def _2D(sa_spectrum, sa_lscales, amplim=3., kernel=None): #len_range=[60.,450.], 
+    '''
+    _2D
+    @summary: Eddy detection on both axes of the scale-averaged spectrum.
+    @note: This technique was first applied in Le Hénaff et al., 2012. Cyclonic<br />
+           activity in the eastern Gulf of Mexico: characterization. Submitted to <br />
+           Progress in Oceanography.
+    @param sa_spectrum: scale-avergaed spectrum returned by runAnalysis().
+    @param sa_lscales: Lengthscale (in km) of the most energetic wavelet returned<br />
+           by the wavelet analysis.
+    @keyword amplim: Amplitude threshold for eddy detection.
+    @keyword kernel: Kernel to pass to maximum_filter1d(). Default is a cross-shaped<br / >
+                     kernel.
+    @return x, y: Detection locations along X and Y axis of the SA spectrum.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
+    '''
     
 #  IF (~exist(lclxtrem)) THEN lclxtrem=1B
     sas=sa_spectrum.copy()
@@ -30,19 +49,20 @@ def _2D(sa_spectrum, sa_lscales, win_width=5., amplim=3., len_range=[60.,450.]):
         sas.data[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear') #Do not use nearest neighbour with maximum_filter
     
     #define maximum filter kernel
-    xs=1 #size wrt center
-    ys=2
-    kd=np.zeros((2*ys+1,2*xs+1),dtype=bool)
-    kd[:,xs]=True
-    kd[ys,:]=True #This is a cross-shaped kernel
-
-#    anisotropy=(3,1)
-#    kx,ky= np.mgrid[-xs:xs+1, -ys:ys+1]
-#    kx*=anisotropy[0]
-#    ky*=anisotropy[1]
-#    kd = np.exp(-(kx**2+ky**2)).transpose() > 0.05 #Kernel valid for distances < 95% of normal distribution
+    if kernel is None :
+        xs=1 #size wrt center
+        ys=2
+        kernel=np.zeros((2*ys+1,2*xs+1),dtype=bool)
+        kernel[:,xs]=True
+        kernel[ys,:]=True #This is a cross-shaped kernel
     
-    data_max = filters.maximum_filter(sas, footprint=kd)
+    #    anisotropy=(3,1)
+    #    kx,ky= np.mgrid[-xs:xs+1, -ys:ys+1]
+    #    kx*=anisotropy[0]
+    #    ky*=anisotropy[1]
+    #    kernel = np.exp(-(kx**2+ky**2)).transpose() > 0.05 #Kernel valid for distances < 95% of normal distribution
+    
+    data_max = filters.maximum_filter(sas, footprint=kernel)
     maxima = (sas == data_max) & (data_max > amplim**2)
   
 #  fg = np.isfinite(sa_spectrum) & (np.sqrt(sa_spectrum >= amplim)) & (sa_lscales < np.max(len_range)) & (sa_lscales >= np.min(len_range)) 
@@ -69,34 +89,26 @@ def _2D(sa_spectrum, sa_lscales, win_width=5., amplim=3., len_range=[60.,450.]):
 
     return x, y
   
-  
-  
-#  #Detect peaks on vectorised form of spectrum
-#  detx=lclxtrem(REFORM(spec_nonan,npts*nt),win_width,/MAXIMA)
-#  dety=lclxtrem(REFORM(TRANSPOSE(spec_nonan),npts*nt),win_width,/MAXIMA)
-#  
-#  ;Convert from vector to matrix indices
-#  detxa=ARRAY_INDICES(spec_nonan,detx)
-#  detya=SHIFT(ARRAY_INDICES(TRANSPOSE(spec_nonan),dety),1,0) ;Due to the transposition, x will be in col 1 and y in col 0 -> shift columns
-#  
-#  ;A is the shortest list & B the longest
-#  mndet=MIN([N_ELEMENTS(detx),N_ELEMENTS(dety)],mnid)
-#  a=(mnid EQ 0)? TEMPORARY(detxa) : TEMPORARY(detya)
-#  b=(mnid EQ 0)? TEMPORARY(detya) : TEMPORARY(detxa)
-#  
-#  na=N_ELEMENTS(a)/2
-#  nb=N_ELEMENTS(b)/2
-#  
-#  tot=INTARR(nb)
-#  nz=0
-#  FOR i=0, na -1 DO BEGIN
-#    tot[*]=0
-#    at=cmreplicate(a[*,i],nb)
-#    tot=TOTAL(at EQ b,1)
-#    dumw=WHERE(tot EQ 2,ntot)
-#    IF (ntot GT 0) THEN BEGIN
-#      z=(nz EQ 0)? dumw : [z,dumw]
-#      nz+=ntot
-#    ENDIF
-#  ENDFOR
-#
+def _1D(sa_spectrum, sa_lscales, win_width=5., amplim=3., len_range=[60.,450.]):
+    '''
+    _1D
+    @summary: Detection of the most energetic eddy along the time axis of the <br />
+              scale-averaged spectrum.
+    @note: This is the original technique applied in :
+           Dussurget, R, F Birol, R.A. Morrow, et P. De Mey. 2011. « Fine Resolution<br />
+           Altimetry Data for a Regional Application in the Bay of Biscay ». Marine<br />
+           Geodesy 2 (34): 1‑30. doi:10.1080/01490419.2011.584835.
+    @warning: This function is currently deprecated. Use _2D instead.
+    @param sa_spectrum: scale-avergaed spectrum returned by runAnalysis().
+    @param sa_lscales: Lengthscale (in km) of the most energetic wavelet returned<br />
+           by the wavelet analysis.
+    @keyword amplim: Amplitude threshold for eddy detection.
+    @keyword win_width: Window size of the maximum filter.
+    @keyword len_range: Range of admitted lengthscales (km). 
+    @return x, y: Detection locations along X and Y axis of the SA spectrum.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
+    '''
+    raise Exception("[ERROR] This function is not available yet and/or deprecated.")
+    return

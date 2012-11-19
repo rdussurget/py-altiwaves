@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.dates as mpl_dates
-#import enthought.chaco.shell as plt
 
 import alti_tools as AT
 import kernel as ke
         
 if __name__ == "__main__" :
+    '''
+    TEST_MERSEA
+    @summary: This is a testing script. It applies the wavelet transform to a DUACS residuals <br />
+              data set (as found on AVISO's website), and compute some space/time-averages<br />
+              for it.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @change: Create in November 2012 by RD.
+    '''
     
     limit=[40.0,4,44.5,11.0]
     trange_str = ['01/01/2008','08/05/2012']
@@ -29,8 +35,8 @@ if __name__ == "__main__" :
 
     #Setup directories
     ##################
-#    alti_pattern = "C:\\VMShared/data/alti/regional/mersea/{0}_cf/nrt_mersea*.nc".format(sat)
-    alti_pattern = "C:\\VMShared/data/alti/regional/mersea-dt/{0}_cf/dt_mersea*.nc".format(sat)
+    alti_pattern = "C:\\VMShared/data/alti/regional/mersea/{0}_cf/nrt_mersea*.nc".format(sat)
+#    alti_pattern = "C:\\VMShared/data/alti/regional/mersea-dt/{0}_cf/dt_mersea*.nc".format(sat)
 
     
     #Load data
@@ -95,7 +101,7 @@ if __name__ == "__main__" :
 #        amplitude[:]=amplitude[isort]
         
         #Rebin results in space
-        hist, ind, blon, blat = ke.grid(lon,lat,eind[0])
+        hist, ind, blon, blat = ke.grid_space(lon,lat,eind[0])
         ampmn, amprms= ke.grid_var(amplitude,hist,ind)
         lenmn, lenrms= ke.grid_var(diameter,hist,ind)
         wvlenmn, wvlenrms= ke.grid_var(wvdiameter,hist,ind)

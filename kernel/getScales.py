@@ -1,9 +1,7 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import alti_tools as AT
-from esutils_stat import histogram
 from  scipy.ndimage.filters import maximum_filter1d
-
-import matplotlib.pyplot as plt
 
 '''
 Created on 12 nov. 2012
@@ -12,12 +10,57 @@ Created on 12 nov. 2012
 '''
 
 def cyclone(sla,ind):
+    '''
+    cyclone
+    @summary: Test the rotation sense of detected eddies.
+    @param sla: Along-track sea level anomalies for detected events.
+    @param ind: Indices of the detected events.
+    @return {array}: True if detected events are cyclones.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
+    '''
     return sla[ind[1],ind[0]] < 0
 
-def eddy_amplitude(var,ind):
-    return var[ind[1],ind[0]]
+def eddy_amplitude(sla,ind):
+    '''
+    eddy_amplitude
+    @summary: Get the eddy amplitude of detected eddies.
+    @param sla: Along-track sea level anomalies for detected events.
+    @param ind: Indices of the detected events.
+    @return {array}: Amplitudes.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
+    '''
+    return np.abs(sla[ind[1],ind[0]])
     
 def solid_body_scale(var,lat,lon,ind):
+    '''
+    solid_body_scale
+    @summary: Compute the diameter of eddy core using maxima of geostrophic velocities<br />
+              computed on both sides of the eddy, and computes the equivalent Relative<br />
+              Vorticity for a solid body rotating eddy.
+    @note: This technique was first applied in Le Hénaff et al., 2012. Cyclonic<br />
+           activity in the eastern Gulf of Mexico: characterization. Submitted to <br />
+           Progress in Oceanography.
+    @note: A 2nd order polynomial over 3-4 points around the velocity maximum is<br />
+           computed to better detect its position.
+    @note: Geostrophic velocities are computed using the Powell and Leben (2004)<br />
+           methodology - powell_leben_filter_km() function. Filtering parameters are<br/>
+           p=q=12km on each sides of the point.
+           Powell, B.S., et R.R. Leben. 2004. « An Optimal Filter for Geostrophic Mesoscale<br/>
+           Currents from Along-Track Satellite Altimetry ». Journal of Atmospheric and<br/>
+           Oceanic Technology 21 (10) (octobre 1): 1633‑1642.
+    @param var: variable on which to apply the analysis : SLA, wavelet-filtered SLA,<br />
+                daughter wavelets, etc...
+    @param lon, lat: Longitude/latitude arrays.
+    @ind: Indices of detected eddies.
+    @return diameter, relvort : Diameter (km) and Relative Vorticity (s-1) of detected eddies.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
+    '''
     xid=ind[1]
     yid=ind[0]
     ne=np.size(xid)
@@ -109,6 +152,27 @@ def solid_body_scale(var,lat,lon,ind):
 
 
 def decorrelation_scale(var,lat,lon,ind):
+    '''
+    solid_body_scale
+    @summary: Compute the decorrelation length-scale of detected eddies.
+    @note: This is the original technique applied in :
+           Dussurget, R, F Birol, R.A. Morrow, et P. De Mey. 2011. « Fine Resolution<br />
+           Altimetry Data for a Regional Application in the Bay of Biscay ». Marine<br />
+           Geodesy 2 (34): 1‑30. doi:10.1080/01490419.2011.584835.
+    @note: A linear regression is applied between the two points around the decorrelation<br />
+           scale to better detect its position.
+    @note: If no sufficient data is found on one of both sides, eddy is considered as<br />
+           symmetric and scales are thus only computed from one side.
+    @param var: variable on which to apply the analysis : SLA, wavelet-filtered SLA,<br />
+                daughter wavelets, etc...
+    @param lon, lat: Longitude/latitude arrays.
+    @ind: Indices of detected eddies.
+    @return diameter, symmetric : Diameter (km) of detected eddies, and symmetric flag to<br />
+            check whether symmetry assumption was used or not.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
+    '''
     xid=ind[1]
     yid=ind[0]
     ne=np.size(xid)
@@ -173,98 +237,34 @@ def decorrelation_scale(var,lat,lon,ind):
     
     return diameter, symmetric
 
-def getScales(sa_spectrum,sa_lscales, lon, lat, time, sla, wvsla, daughter, id, binsize=7) :
-    
-#PRO AW_getScales, xval, lon, lat, xtime, len, idmx, sla, daughtout, $
-#  longi=longi, $
-#  lati=lati, $
-#  lenval=lenval, $
-#  ampval=ampval, $
-#  cycval=cycval, $
-#  ancval=ancval, $
-#  hist=hist, $
-#  loc=loc, $
-#  nx=nx, $
-#  diameter=diameter, $
-#  wvdiameter=wvdiameter, $
-#  bin=bin, $
-#  true_anom=true_anom, $
-#  cyclone=cyclone
-
-#  IF (~exist(true_anom)) THEN true_anom=0B
-
-#;  id=AW_detectEddies(xval, len, idmx, idmxid=idmxid, rglen=rglen)
-    shape=sa_spectrum.shape
-    nt=shape[0]
-    nx=shape[1]
-    
-    xid=id[1]
-    yid=id[0]
-    ne=np.size(xid)
-    
-    #Regrid results if neceassary
-    #CHECK CONSISTENCY WITH LENGTH COMPUTATION
-    dst=AT.calcul_distance(lat,lon)
-    mndst=np.median(AT.deriv(dst))
-    dst_grid=np.arange(np.ceil(dst.max()/mndst)+1.)*mndst
-  
-    #Check length
-    #Wavelet based method
-    #####################
-#    wvdiameter=decorrelation_scale(daughter, dst_grid, id)
-        
-    #Check length using SLA signal directly
-    #This algorithm has a problem as it does not include both faces of eddy
-    #######################################################################
-    diameter=decorrelation_scale(sla, lon, lat, dst_grid, id)
-#  diameter=DBLARR(nt)
-#  cyclone=DBLARR(nt)
-#  slaval=DBLARR(nt)
-    
-    #Rebin results
-    ##############
-    dhist,R=histogram(yid, binsize=binsize, rev=True, use_weave=False, verbose=0)
-    ind = AT.histogram_indices(dhist, R)
-    dist_shist = np.repeat(np.NaN,len(dhist))
-#    for i in np.arange(len(ind)) : dist_shist[i]=np.mean(np.abs(spd_mat[ind[i]]))
-#    dist_centers = np.arange(0,max_dist+max_dist/20.,max_dist/20.) + (max_dist/(2*20.))
-#  
-#  hist=HISTOGRAM(idmx,BINSIZE=bin,LOCATIONS=loc,REVERSE_INDICES=R)
-#  
-#  lenval = DBLARR(N_ELEMENTS(loc),/NOZERO)
-#  ampval = DBLARR(N_ELEMENTS(loc),/NOZERO)
-#  cycval = DBLARR(N_ELEMENTS(loc),/NOZERO)
-#  ancval = DBLARR(N_ELEMENTS(loc),/NOZERO)
-#  notempty=WHERE(hist GT 0, cnt,COMPLEMENT=empty)
-#  IF (cnt NE N_ELEMENTS(hist)) THEN lenval[empty]=!VALUES.D_NAN
-#  IF (cnt NE N_ELEMENTS(hist)) THEN  ampval[empty]=!VALUES.D_NAN
-#  
-#  ;Get current position
-#  lati=lat[loc]
-#  longi=lon[loc]
-#  
-#  FOR j = 0, cnt - 1 DO BEGIN
-#    k=notempty[j]
-#    lenval[k]=MEDIAN(wvdiameter[R[R[k] : R[k+1]-1]],/DOUBLE)
-#;    ampval[k]=(~true_anom)? $
-#;      MEDIAN(SQRT(xval[R[R[k] : R[k+1]-1]]),/DOUBLE) : $
-#;      MEDIAN(ABS(slaval[R[R[k] : R[k+1]-1]]),/DOUBLE)
-#    ampval[k]=(~true_anom)? $
-#      MEAN(SQRT(xval[R[R[k] : R[k+1]-1]]),/DOUBLE) : $
-#      MEAN(ABS(slaval[R[R[k] : R[k+1]-1]]),/DOUBLE)
-#    cycval[j]=TOTAL(cyclone[R[R[k] : R[k+1]-1]])
-#    ancval[j]=TOTAL(~(cyclone[R[R[k] : R[k+1]-1]]))
-#;    
-#;    lenval[k]=MEAN(wvdiameter[R[R[k] : R[k+1]-1]],/DOUBLE)
-#;    ampval[k]=MEAN(xval[R[R[k] : R[k+1]-1]],/DOUBLE)
-#  ENDFOR
-#  
-#  
-#  RETURN
-#  
-#;  SAVE, longi, lati, lenval, ampval, hist, loc, nx, bin, FILENAME='/home/ctoh/dussurge/IDLWorkspace/Biscay_xtrack/wavelets/analysis_data/MGdata9209/scales/scales_'+label+'_'+STRTRIM(tracks[i],2)+'.DOG'+STRTRIM(m0,2)+'.sav'  
-# 
-#  
-#  
+#def getScales(sa_spectrum,sa_lscales, lon, lat, time, sla, wvsla, daughter, id, binsize=7) :
 #
-#END
+#    shape=sa_spectrum.shape
+#    nt=shape[0]
+#    nx=shape[1]
+#    
+#    xid=id[1]
+#    yid=id[0]
+#    ne=np.size(xid)
+#    
+#    #Regrid results if neceassary
+#    #CHECK CONSISTENCY WITH LENGTH COMPUTATION
+#    dst=AT.calcul_distance(lat,lon)
+#    mndst=np.median(AT.deriv(dst))
+#    dst_grid=np.arange(np.ceil(dst.max()/mndst)+1.)*mndst
+#  
+#    #Check length
+#    #Wavelet based method
+#    #####################
+##    wvdiameter=decorrelation_scale(daughter, dst_grid, id)
+#        
+#    #Check length using SLA signal directly
+#    #This algorithm has a problem as it does not include both faces of eddy
+#    #######################################################################
+#    diameter=decorrelation_scale(sla, lon, lat, dst_grid, id)
+#    
+#    #Rebin results
+#    ##############
+#    dhist,R=histogram(yid, binsize=binsize, rev=True, use_weave=False, verbose=0)
+#    ind = AT.histogram_indices(dhist, R)
+#    dist_shist = np.repeat(np.NaN,len(dhist))
