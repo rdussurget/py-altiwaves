@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 import sys
 import numpy as np
@@ -18,7 +19,8 @@ curper=0
 
 def process(i,N,step=10):
     '''
-    process : counter bar
+    process : 
+    @summary: counter bar
     '''
     global curper
     per = np.int16((100.0 * i)/N)
@@ -30,22 +32,40 @@ def process(i,N,step=10):
 def runAnalysis(lon, lat, time, sla, \
              
                  #Analysis parameters
-                 w0=None, \
+                 mother='dog', \
+                 m=None, \
                  len_range=[60.,450.], \
+                 
+                 #Data processing options
                  detrend=True, \
                  demean=True, \
-                 mother='dog', \
-                 high=None, \
+#                 high=None, \
                  
                  #Verbose option
                  verbose=True):
-    
     '''
     run_analysis :  
-    
-    @summary: Run wavelet analysis on along-track altimetry sea level data as in Dussurget et al., 2011
-    @author : Renaud DUSSURGET, LER/PAC IFREMER (RD)
-    @change: Created on 8 Nov. 2011 from IDL version of IDL version of AltiWAVEs/kernel/aw_run_analysis.pro.
+    @summary: Run wavelet analysis on along-track altimetry sea level data as in Dussurget et al., 2011.
+    @note: Details of the wavelet analysis is found in :
+             o Dussurget, R, F Birol, R.A. Morrow, et P. De Mey. 2011. « Fine Resolution<br />
+               Altimetry Data for a Regional Application in the Bay of Biscay ». Marine<br />
+               Geodesy 2 (34): 1‑30. doi:10.1080/01490419.2011.584835.
+             o Torrence, C., et G.P. Compo. 1998. « A Practical Guide to Wavelet Analysis ».<br />
+             Bulletin of the American Meteorological Society 79 (1): 61‑78.
+    @param lon, lat: Longitude/latitude arrays.
+    @param time: time vector.
+    @param sla: along-track matrice of sea level anomaly data.
+    @keyword mother {string}{default:'dog'}: Name of the mother wavelet, as specified in wavelet.py.
+    @keyword m {default: 2 for 'dog', 6 for 'morlet'}: Order of the wavelet.
+    @keyword len_range {default:[60,450]}: Range of scale integration (in km). Scales outside this<br />
+             range will be cancelled.
+    @keyword detrend {boolean}{default:True}: apply linear detrending before computing the transform.
+    @keyword demean  {boolean}{default:True}: Demean SLA data before computing the transform.
+    @return diameter, symmetric : Diameter (km) of detected eddies, and symmetric flag to<br />
+            check whether symmetry assumption was used or not.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since : November 2012.
+    @change: Create in November 2012 by RD.
     '''
     #define constants
     km2cm = 1e5
@@ -62,10 +82,10 @@ def runAnalysis(lon, lat, time, sla, \
     #Setup Wavelet Transform parameters
     ###################################
     dt = np.median(AT.deriv(dstcm))
-    w0 =  6 if mother == 'morlet' else (2 if w0 is None else w0) #Wavenumber
+    m =  6 if mother == 'morlet' else (2 if m is None else m) #Wavenumber
 
-    len2scale = np.sqrt(w0+0.5) / (2*np.pi)
-    scale2len = (2*np.pi) / np.sqrt(w0+0.5) #"fourrier factor"
+    len2scale = np.sqrt(m+0.5) / (2*np.pi)
+    scale2len = (2*np.pi) / np.sqrt(m+0.5) #"fourrier factor"
     
     T = max(dstcm)
     s0 = 2.0 * dt if mother == 'morlet' else (2*dt) * len2scale #smallest wavescale (devided by fourier wavelength)
@@ -78,13 +98,13 @@ def runAnalysis(lon, lat, time, sla, \
     alpha = 0.0 # Lag-1 autocorrelation for white noise
     
     #Setup wavelet object
-    exec('mother_obj=kernel.wavelet.{0}({1})'.format(mother,w0))
+    exec('mother_obj=kernel.wavelet.{0}({1})'.format(mother,m))
     
 
     #Print wavelet analysis parameters
     ##################################
     if verbose :
-        str_header = '\t===Wavelet analysis parameters===\n\twavelet:{0}, degree:{1}, scale range {2} {3} km\n\toptions : '.format(mother, w0, len_range[0], len_range[1])
+        str_header = '\t===Wavelet analysis parameters===\n\twavelet:{0}, degree:{1}, scale range {2} {3} km\n\toptions : '.format(mother, m, len_range[0], len_range[1])
         str_opt = ','.join([x for x in np.array(['demean','detrend','filter'])[np.array([demean,detrend,filter])==True]])
         print(str_header + str_opt)
         print('\tstatus : ',end='')
@@ -155,7 +175,12 @@ def runAnalysis(lon, lat, time, sla, \
         if fgcnt > 0 :
             dum = sla[valid,:]
             dum, dumlon, dumlat, dumind, ngaps, gapedges, gaplen, interpolated = AT.fill_gaps(lat, lon, sla[valid,:], ~fg,remove_edges=True) #Truncate serie if not full
-        else : dum = sla[valid,:]
+        else :
+            dum = sla[valid,:]
+            dumind = np.arange(len(dum))
+            ngaps = 0
+            gaplen = []
+            gapedges = []
         
         ndum=len(dum)
         
