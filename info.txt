@@ -1,0 +1,43 @@
+
+-----------------------------------------------------------------------
+PyALTIWAVES: Python-based ALong-Track Inventory of WAVelet based EddieS
+-----------------------------------------------------------------------
+
+	--> Automatic census of eddies from along-track altimetry data.
+
+
+	
+This library has been base on the work of Dussurget et al., 2011 in the Bay of Biscay and updated with the work accomplished in the
+Golf of Mexico by Le Hénaff et al, 2012.
+Wavelet analysis is applied along-track to detect gaussian-shaped signals such as Oceanic Eddies. Once detected, their properties
+can thus be derived over a given area or period. Properties include several definitions of the spatial length-scales (eg.
+decorrelation scale and size of the core of a solid-body rotating eddy), amplitude, rotation sense, relative vorticity, etc.
+
+
+Useful references:
+------------------
+Dussurget, R., F. Birol, et R.A. Morrow. in prep. « Constructing fine-scale multi-mission altimeter maps for regional and coastal applications »
+Le Hénaff, M., V.H. Kourafalou, R. Dussurget, et R. Lumpkin. 2012. « Cyclonic activity in the eastern Gulf of Mexico: characterization from along-track altimetry and in situ drifter trajectories ». submitted to Progress In Oceanography.
+Dussurget, R, F Birol, R.A. Morrow, et P. De Mey. 2011. « Fine Resolution Altimetry Data for a Regional Application in the Bay of Biscay ». Marine Geodesy 2 (34): 1‑30. doi:10.1080/01490419.2011.584835.
+Lilly, J.M., P.B. Rhines, F. Schott, K. Lavender, J. Lazier, U. Send, et E. D’Asaro. 2003. « Observations of the Labrador Sea eddy field ». Progress In Oceanography 59 (1) (octobre): 75‑176. doi:10.1016/j.pocean.2003.08.013.
+Torrence, C., et G.P. Compo. 1998. « A Practical Guide to Wavelet Analysis ». Bulletin of the American Meteorological Society 79 (1) (janvier 1): 61‑78.
+
+
+Special notes:
+--------------
+This package is inteded to be used with the PyValid package.
+
+Author : Renaud DUSSURGET, LER/PAC IFREMER (RD)
+--------
+
+History :
+---------
+	° Adapted from CTOH/LEGOS IDL ALTI_WAVES library (RD).
+	° November 2012 : Converted to Python
+		- Added computation of eddy core scale and relative vorticity
+		- Improved 2D eddy detection
+		- Modified decorrelation scales (asses the scale on both sides of eddy) : still require some work when computing the scales.
+		- Added computing temporal variability of parameters.
+		- Added a test case using simulated red noise data.
+		- Tested on DUACS MERSEA NRT & DT products over Med : spatial and temporal variability of eddy properties.
+		- Validation over GoM and BoB : in progress.
