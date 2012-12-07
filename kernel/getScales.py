@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import alti_tools as AT
 from  scipy.ndimage.filters import maximum_filter1d
+from altimetry.tools import grid_track, geost_1d, deriv
 
 '''
 Created on 12 nov. 2012
@@ -77,8 +77,8 @@ def solid_body_scale(var,lat,lon,ind):
         cursla -= np.median(cursla)
         
         #Fill gaps
-        dst, dumlon, dumlat, dumsla, gaplen, ngaps, gapedges, interpolated = AT.grid_track(lat[fg],lon[fg],cursla)
-        ugeo=AT.geost_1d(dumlon,dumlat,dumsla,pl04=True)
+        dst, dumlon, dumlat, dumsla, gaplen, ngaps, gapedges, interpolated = grid_track(lat[fg],lon[fg],cursla)
+        ugeo=geost_1d(dumlon,dumlat,dumsla,pl04=True)
         
         #Update yid with resampled SLA array
         dumy = np.arange(len(dst))[~interpolated][dumy]
@@ -189,7 +189,7 @@ def decorrelation_scale(var,lat,lon,ind):
         cursla -= np.median(cursla)
         
         #Fill gaps
-        dst, dumlon, dumlat, dumsla, gaplen, ngaps, gapedges, interpolated = AT.grid_track(lat[fg],lon[fg],cursla)
+        dst, dumlon, dumlat, dumsla, gaplen, ngaps, gapedges, interpolated = grid_track(lat[fg],lon[fg],cursla)
         
         #Update yid with resampled SLA array
         dumy = np.arange(len(dst))[~interpolated][dumy]
@@ -216,8 +216,8 @@ def decorrelation_scale(var,lat,lon,ind):
         for i,l in enumerate(lag_r) : acorr_r[i] = np.corrcoef(dumsla_r, np.roll(dumsla_r,l))[0][1]
     
         #detect first zero crossing of auto-corr function with the derivative of its absolute
-        zc_l = (np.where(AT.deriv(np.abs(acorr_l)) > acorr_l))[0] if nl >= 3 else []
-        zc_r = (np.where(AT.deriv(np.abs(acorr_r)) > acorr_r))[0] if nr >= 3 else []
+        zc_l = (np.where(deriv(np.abs(acorr_l)) > acorr_l))[0] if nl >= 3 else []
+        zc_r = (np.where(deriv(np.abs(acorr_r)) > acorr_r))[0] if nr >= 3 else []
         zer_cross = []
         if len(zc_l) != 0 : zer_cross = np.append(zer_cross,zc_l[0])
         if len(zc_r) != 0 : zer_cross = np.append(zer_cross,zc_r[0])
@@ -268,3 +268,17 @@ def decorrelation_scale(var,lat,lon,ind):
 #    dhist,R=histogram(yid, binsize=binsize, rev=True, use_weave=False, verbose=0)
 #    ind = AT.histogram_indices(dhist, R)
 #    dist_shist = np.repeat(np.NaN,len(dhist))
+
+
+def get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum):
+    #Sort indexes against time
+    isort=np.argsort(time[eind[1]])
+    eind[0][:]=eind[0][isort]
+    eind[1][:]=eind[1][isort]
+    
+    #Detect eddies and select cyclones
+    diameter, symmetric= decorrelation_scale(sla, lat, lon, eind)
+    wvdiameter, wvsymmetric = decorrelation_scale(wvsla, lat, lon, eind)
+    ugdiameter, relvort = solid_body_scale(sla, lat, lon, eind)
+    amplitude = eddy_amplitude(np.sqrt(sa_spectrum), eind)*100.
+    return amplitude, diameter, relvort, ugdiameter, wvdiameter

@@ -1,6 +1,6 @@
 import numpy as np
-from esutils_stat import histogram
-import alti_tools as AT
+from altimetry.externals.esutils_stat import histogram
+import altimetry.tools as AT
 
 def grid_time(time,tid,binsize=1):
     '''
@@ -72,3 +72,23 @@ def grid_var(var,hist,ind):
     for i in np.arange(nx) : rms[i]=AT.rms(var[ind[i]])
     
     return mn, rms
+
+def bin_space(lon,lat,eind,amplitude,diameter,relvort,ugdiameter,wvdiameter):
+    hist, ind, blon, blat = grid_space(lon,lat,eind[0])
+    ampmn, amprms= grid_var(amplitude,hist,ind)
+    lenmn, lenrms= grid_var(diameter,hist,ind)
+    wvlenmn, wvlenrms= grid_var(wvdiameter,hist,ind)
+    uglmn, uglrms= grid_var(ugdiameter,hist,ind)
+    rvmn, rvrms= grid_var(relvort,hist,ind)
+    
+    return blon, blat, hist,  ampmn, lenmn, rvmn, uglmn, wvlenmn, amprms, lenrms, rvrms, uglrms, wvlenrms
+
+def bin_time(time,eind,amplitude,diameter,relvort,ugdiameter,wvdiameter):
+    date,datetime=AT.cnes_convert(time)
+    thist,tind,btime=grid_time(time,eind[1])
+    trvmn,trvrms=grid_var(relvort,thist,tind)
+    tampmn,tamprms=grid_var(amplitude,thist,tind)
+    tlenmn,tlenrms=grid_var(diameter,thist,tind)
+    twvlmn,twvlrms=grid_var(wvdiameter,thist,tind)
+    tuglmn,tuglrms=grid_var(ugdiameter,thist,tind)
+    return datetime, btime, thist, tampmn, tlenmn, trvmn, tuglmn, twvlmn, tamprms, tlenrms, trvrms, tuglrms, twvlrms

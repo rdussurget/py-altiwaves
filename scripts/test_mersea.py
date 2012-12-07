@@ -35,8 +35,8 @@ if __name__ == "__main__" :
 
     #Setup directories
     ##################
-    alti_pattern = "C:\\VMShared/data/alti/regional/mersea/{0}_cf/nrt_mersea*.nc".format(sat)
-#    alti_pattern = "C:\\VMShared/data/alti/regional/mersea-dt/{0}_cf/dt_mersea*.nc".format(sat)
+#    alti_pattern = "C:\\VMShared/data/alti/regional/mersea/{0}_cf/nrt_mersea*.nc".format(sat)
+    alti_pattern = "C:\\VMShared/data/alti/regional/mersea-dt/{0}_cf/dt_mersea*.nc".format(sat)
 
     
     #Load data
@@ -73,10 +73,10 @@ if __name__ == "__main__" :
         #####################
         
         #WV analysis
-        sa_spectrum, sa_lscales, wvsla, daughter = ke.runAnalysis(lon,lat,time,sla,len_range=[40,150],w0=0)
+        sa_spectrum, sa_lscales, wvsla, daughter = ke.runAnalysis(lon,lat,time,sla,len_range=[40,150],m=0)
         
         #Detection of energy peaks on scale-averaged spectrum
-        eind = ke._2Ddetection(sa_spectrum, sa_lscales, amplim=0.04, win_width=3)
+        eind = ke._2Ddetection(sa_spectrum, sa_lscales, amplim=0.04)
         
         #Sort indexes against time
         isort=np.argsort(time[eind[0]])
@@ -121,7 +121,7 @@ if __name__ == "__main__" :
         #############
         
         #Show SLA and SA spectrum hovmollers with eddy positions overlaid
-#        plt.subplot(1,2,1); plt.pcolor(lat,time/365.25+1950,np.sqrt(sa_spectrum)); plt.title('Wavelet scale-averaged spectrum');plt.xlabel('Latitude (�N)');plt.ylabel('Date'); plt.colorbar(); plt.plot(lat[eind[0]]+np.median(AT.deriv(lat))/2,(time/365.25+1950)[eind[1]]+(dt/365.25)/2,'ok',markersize=5); plt.subplot(1,2,2); plt.pcolor(lat,time/365.25+1950,wvsla - np.repeat(wvsla.mean(axis=1),N).reshape((nt,N))); plt.colorbar(); plt.title('wavelet-filtered SLA (m)');plt.xlabel('Latitude (�N)');plt.ylabel('Date');plt.plot(lat[eind[0]]+np.median(AT.deriv(lat))/2,(time/365.25+1950)[eind[1]]+(dt/365.25)/2,'ok',markersize=5); plt.show()
+        plt.subplot(1,2,1); plt.pcolor(lat,time/365.25+1950,np.sqrt(sa_spectrum)); plt.title('Wavelet scale-averaged spectrum');plt.xlabel('Latitude (�N)');plt.ylabel('Date'); plt.colorbar(); plt.plot(lat[eind[0]]+np.median(AT.deriv(lat))/2,(time/365.25+1950)[eind[1]]+(dt/365.25)/2,'ok',markersize=2); plt.subplot(1,2,2); plt.pcolor(lat,time/365.25+1950,wvsla - np.repeat(wvsla.mean(axis=1),N).reshape((nt,N))); plt.colorbar(); plt.title('wavelet-filtered SLA (m)');plt.xlabel('Latitude (�N)');plt.ylabel('Date');plt.plot(lat[eind[0]]+np.median(AT.deriv(lat))/2,(time/365.25+1950)[eind[1]]+(dt/365.25)/2,'ok',markersize=2); plt.show()
         
         #Show maps of binned eddy properties
         pmap=AT.plot_map(0,0,0,limit=alti.limit,resolution='i')

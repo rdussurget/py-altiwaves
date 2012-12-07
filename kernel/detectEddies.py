@@ -2,18 +2,17 @@
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
-import alti_tools as AT
 import scipy.interpolate
-
 import matplotlib.pyplot as plt
-from pyglet.event import EventException
+from kernel.getScales import cyclone, decorrelation_scale, solid_body_scale,\
+    eddy_amplitude
 
 '''
 Created on 9 nov. 2012
 
 @author: rdussurg
 '''
-def _2D(sa_spectrum, sa_lscales, amplim=3., kernel=None): #len_range=[60.,450.], 
+def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.], 
     '''
     _2D
     @summary: Eddy detection on both axes of the scale-averaged spectrum.
@@ -112,3 +111,9 @@ def _1D(sa_spectrum, sa_lscales, win_width=5., amplim=3., len_range=[60.,450.]):
     '''
     raise Exception("[ERROR] This function is not available yet and/or deprecated.")
     return
+
+def detection(sa_spectrum,amplim=0.03,twoD=True):
+    eind = _2D(sa_spectrum, amplim=amplim) if twoD else _1D(sa_spectrum, amplim=amplim)
+    eind = np.squeeze(eind)
+    return eind
+    

@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 import numpy as np
 
-import alti_tools as AT
+import altimetry.tools as AT #detrend, calcul_distance, deriv, fill_gaps
 import kernel
 
 import matplotlib.pyplot as plt #Optional - only for debugging
@@ -38,7 +38,7 @@ def runAnalysis(lon, lat, time, sla, \
                  
                  #Data processing options
                  detrend=True, \
-                 demean=True, \
+                 demean=False, \
 #                 high=None, \
                  
                  #Verbose option
@@ -54,7 +54,7 @@ def runAnalysis(lon, lat, time, sla, \
              Bulletin of the American Meteorological Society 79 (1): 61‑78.
     @param lon, lat: Longitude/latitude arrays.
     @param time: time vector.
-    @param sla: along-track matrice of sea level anomaly data.
+    @param sla: along-track matrice of sea level anomaly data (time,*pts)
     @keyword mother {string}{default:'dog'}: Name of the mother wavelet, as specified in wavelet.py.
     @keyword m {default: 2 for 'dog', 6 for 'morlet'}: Order of the wavelet.
     @keyword len_range {default:[60,450]}: Range of scale integration (in km). Scales outside this<br />
@@ -136,9 +136,9 @@ def runAnalysis(lon, lat, time, sla, \
     else : enough = np.where(fg)[0]
     
     #Remove mean if necessary
-    if (demean) : sla -= np.repeat(np.nansum(sla, axis=1)/nx,nx).reshape((nt,nx))
     if detrend :
         sla[enough,:]= AT.detrend(dst,sla[enough,:])
+    if (demean) : sla -= np.repeat(np.nansum(sla, axis=1)/nx,nx).reshape((nt,nx))
     
     
     #Setup output variables
@@ -147,14 +147,14 @@ def runAnalysis(lon, lat, time, sla, \
     wvsla =  np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool))
     sa_lscales =  np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool))
     daughtout =  np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool))
-    avg_sig = np.arange(nt,dtype=np.float64)
-    Cpsi = np.arange(nt,dtype=np.float64) #FFT energy matrix
+    avg_sig = np.arange(nt,dtype=np.float32)
+    Cpsi = np.arange(nt,dtype=np.float32) #FFT energy matrix
     lenscale = np.ma.array(np.zeros(nt),mask=np.ones(nt,dtype=bool)) #return corresponding lengthscales
     
     outsla = np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool))
     
     #Setup intermediate variables
-    WPower=np.ma.array(np.zeros((J+1,nx),dtype=np.float64),mask=np.ones((J+1,nx),dtype=bool))   # Normalized wavelet power spectrum
+    WPower=np.ma.array(np.zeros((J+1,nx),dtype=np.float32),mask=np.ones((J+1,nx),dtype=bool))   # Normalized wavelet power spectrum
     W = WPower.copy()
     daughter = np.ma.array(np.ones((J+1,nx))*np.complex128(0),mask=np.ones((J+1,nx),dtype=bool))
     
@@ -184,6 +184,7 @@ def runAnalysis(lon, lat, time, sla, \
         
         ndum=len(dum)
         
+        #TODO: Test gap length for analysis...
 #        if ngaps > 0:
 #            if gaplen.max() >= 3 :
 #                print('long_gap')
