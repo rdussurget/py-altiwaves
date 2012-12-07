@@ -8,7 +8,8 @@ Kernel module
 '''
 from runAnalysis import runAnalysis
 from external import wavelet
-from detectEddies import _2D as _2Ddetection
-from getScales import decorrelation_scale, solid_body_scale, eddy_amplitude, cyclone
-from bins import grid_space, grid_var, grid_time
+from detectEddies import detection
+from getScales import get_characteristics, eddy_amplitude, cyclone
+from bins import bin_space, bin_time#grid_space, grid_var, grid_time
+from io import save_analysis, save_detection,save_binning
 #from detectEddies import oneD as eddies_1D
