@@ -129,7 +129,7 @@ def runAnalysis(lon, lat, time, sla, \
     #Compute time coverage
     acov=np.nansum(np.isfinite(sla),axis=1)    
     per=100.0*acov.astype(float)/nx
-    fg = (per.data >= 0.15)
+    fg = (per.data >= 0.15) & (acov.data > 10) #Minimimum number of valid points is 15% of total length, and must be greater than 10
     count = fg.sum()
     if count == nt :
         enough = np.arange(nt)
@@ -318,7 +318,7 @@ def runAnalysis(lon, lat, time, sla, \
 
     if (verbose) : print('o done\n\t=================================')
     
-    return sa_spectrum, sa_lscales, wvsla, daughtout 
+    return sa_spectrum, sa_lscales, wvsla, daughtout, {'m':m,'mother':mother,'demean':int(demean),'detrend':int(detrend),'range':len_range,'len2scale':len2scale,'dj':dj,'s0':s0,'J':J,'dt':dt,'T':T,'N':nx,'cm2km':cm2km}
 #           mxval, idmx, truemx, tmxval, lenscale
 #                 outsla=outsla
     

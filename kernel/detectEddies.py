@@ -1,4 +1,10 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-*
+'''
+detectEddies
+@summary: functions for detection of eddy-like features after wavelet analysis  
+@author: Renaud DUSSURGET, LER/PAC IFREMER.
+@since: Created on 9 nov. 2012
+'''
 import numpy as np
 import scipy.ndimage as ndimage
 import scipy.ndimage.filters as filters
@@ -7,11 +13,6 @@ import matplotlib.pyplot as plt
 from kernel.getScales import cyclone, decorrelation_scale, solid_body_scale,\
     eddy_amplitude
 
-'''
-Created on 9 nov. 2012
-
-@author: rdussurg
-'''
 def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.], 
     '''
     _2D
@@ -45,15 +46,21 @@ def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.],
         points=zip(*(xout[~sa_spectrum.mask].flatten(), yout[~sa_spectrum.mask].flatten()))
         values=sas.data[~sa_spectrum.mask].flatten()
         xi=zip(*(xout[sa_spectrum.mask].flatten(), yout[sa_spectrum.mask].flatten()))
-        sas.data[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear') #Do not use nearest neighbour with maximum_filter
+        sas[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear') #Do not use nearest neighbour with maximum_filter
     
     #define maximum filter kernel
     if kernel is None :
-        xs=1 #size wrt center
+        xs=2 #size wrt center
         ys=2
         kernel=np.zeros((2*ys+1,2*xs+1),dtype=bool)
         kernel[:,xs]=True
-        kernel[ys,:]=True #This is a cross-shaped kernel
+        kernel[:,xs-1]=True
+        kernel[:,xs+1]=True
+        kernel[ys,:]=True
+##        kernel[:,xs]=True
+#        kernel[ys,:]=True #This is a cross-shaped kernel
+#        kernel=~kernel
+#        kernel[1:4,:]=True
     
     #    anisotropy=(3,1)
     #    kx,ky= np.mgrid[-xs:xs+1, -ys:ys+1]
@@ -62,7 +69,7 @@ def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.],
     #    kernel = np.exp(-(kx**2+ky**2)).transpose() > 0.05 #Kernel valid for distances < 95% of normal distribution
     
     data_max = filters.maximum_filter(sas, footprint=kernel)
-    maxima = (sas == data_max) & (data_max > amplim**2)
+    maxima = (sas == data_max) & (data_max > amplim**2) & (~sa_spectrum.mask)
   
 #  fg = np.isfinite(sa_spectrum) & (np.sqrt(sa_spectrum >= amplim)) & (sa_lscales < np.max(len_range)) & (sa_lscales >= np.min(len_range)) 
   
@@ -112,8 +119,93 @@ def _1D(sa_spectrum, sa_lscales, win_width=5., amplim=3., len_range=[60.,450.]):
     raise Exception("[ERROR] This function is not available yet and/or deprecated.")
     return
 
-def detection(sa_spectrum,amplim=0.03,twoD=True):
+def clean_indices(sa_spectrum,sa_lscales,eind,params):
+    """
+    @summary: Removes not valid indices (masked point within 4 points or other point within lenghtscale)
+    @author: Renaud DUSSURGET
+    """
+    xind=eind[0,:]
+    yind=eind[1,:]
+    toRm=np.array([])
+    
+    timescale_width = np.sqrt(4 - np.log(2) - np.log(np.pi)) #THIS IS ONLY VALID FOR wavelet DOG, m=0
+    spectral_width = (np.sqrt(4-0.5*np.log(np.pi)))
+    N=params['N']
+    dj=params['dj']
+    s0=params['s0']
+    l2s=params['len2scale']
+    dt=params['dt']*1e-5
+    
+    #remove indices with masked data closer than 4 points
+    for i,x in enumerate(xind):
+        
+        #Check structure lengthscale
+        s=sa_lscales[yind[i],x]*l2s #spatial lengthscale
+        j=np.log((s*1e5)/s0) / (dj*np.log(2)) #Get the wavenumber
+        ets=(timescale_width*s)/dt  #This is the e-folding time of the wavelet function
+                                    #as a function of scale
+        e=np.ceil(1.25*ets) #Add a 25% confidence margin
+#        esw=(spectral_width*N*dt)/(s) #This is the spectral uncertainty
+#        s1=s0*2**((j-esw)*dj)*1e-5
+#        s2=s0*2**((j+esw)*dj)*1e-5
+#        e = 0.75*np.floor((s)**2/(np.sqrt(2)*params['N'])) #This is the e-folding time of the wavelet function
+#                                                          #as a function of scale, divided by a margin of 75%
+
+#        exp=np.exp
+#        sqrt=np.sqrt
+#        pi=np.pi
+#        s=sa_lscales[6,23]*params['len2scale']
+#        d=daughter[6,:]
+#        f=np.sqrt(2*np.log(np.sqrt(2*np.pi)))
+#        f=2.0*np.sqrt(np.log(np.sqrt(np.pi)))
+#        e = (s/dx) * f
+#
+#        n=np.arange(N)
+#        nu=(n*dx)/s
+#        k=n
+#        omega= k/(N*dx)
+#        
+#        def psi(nu):return (1.0/sqrt(2.0*pi))*exp(-0.5*(nu**2)) 
+#        timescale_width = np.sqrt(4 - np.log(2) - np.log(np.pi))
+#        spectral_width = (np.sqrt(4-0.5*np.log(np.pi)))
+#        (timescale_width*s)/dx #temporal e-folding time
+#        (spectral_width*N*dx)/(s) #spectral e-folding time
+#        
+#        psi_hat = (1.0/sqrt(sqrt(pi)))*exp(-0.5*((s*omega)**2))
+#        def psi_hat(s_omega): return (1.0/sqrt(sqrt(pi)))*exp(-0.5*((s_omega)**2))
+#        
+#        (sqrt(2)*(s**2))/dx
+#        
+#        psi=(1.0/sqrt(2.0*pi))*exp(-0.5*(nu**2))
+
+#        e = (s/dt) * f
+
+        #Get surrounding energy peaks for same cycle
+        pks=xind[(yind == yind[i]) & (xind != x)]
+        pks=np.array(list(set(pks).difference(set(toRm))))
+        
+        dst=np.abs(pks - x)
+        
+        #For each more energetic peaks within the e-folding scale, remove current point, otherwise remove secondary peak
+        for s in pks[dst < e]:
+#            print yind[i], s, x
+            if sa_spectrum[yind[i],s] > sa_spectrum[yind[i],x] : toRm=np.append(toRm,i)
+            else : toRm=np.append(toRm,s)
+
+        if np.min(np.abs(np.arange(sa_spectrum.shape[1])[sa_spectrum.mask[yind[i],:]] - x)) < 3 :
+            toRm = np.append(toRm,i) #Append to index list if true
+        
+        
+        
+    eindin=eind.copy()
+    eind=np.squeeze([np.delete(xind,toRm),np.delete(yind,toRm)])
+#    plt.pcolormesh(sa_spectrum);plt.plot(eindin[0,:],eindin[1,:],'ok');plt.plot(eind[0,:],eind[1,:],'.r');plt.show()
+    
+    return eind
+
+def detection(sa_spectrum,sa_lscales,params,amplim=0.03,twoD=True):
     eind = _2D(sa_spectrum, amplim=amplim) if twoD else _1D(sa_spectrum, amplim=amplim)
     eind = np.squeeze(eind)
+    eind = clean_indices(sa_spectrum,sa_lscales, eind,params)
     return eind
     

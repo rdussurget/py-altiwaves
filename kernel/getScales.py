@@ -1,13 +1,94 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from  scipy.ndimage.filters import maximum_filter1d
+from scipy.special import gamma
+from scipy import optimize
 from altimetry.tools import grid_track, geost_1d, deriv
+from altimetry.tools.spatial_tools import calcul_distance
+from scipy.optimize.minpack import curve_fit
+if __debug__ : import matplotlib.pyplot as plt
 
 '''
 Created on 12 nov. 2012
 
 @author: rdussurg
 '''
+
+def leastsq_bounds( func, x0, bounds, boundsweight=10, **kwargs ):
+    """ leastsq with bound conatraints lo <= p <= hi
+    run leastsq with additional constraints to minimize the sum of squares of
+        [func(p) ...]
+        + boundsweight * [max( lo_i - p_i, 0, p_i - hi_i ) ...]
+ 
+    Parameters
+    ----------
+    func() : a function of parameters `p`
+    bounds : an n x 2 list or array `[[lo_0,hi_0], [lo_1, hi_1] ...]`.
+        Use e.g. [0, inf]; do not use NaNs.
+        A bound e.g. [2,2] pins that x_j == 2.
+    boundsweight : weights the bounds constraints
+    kwargs : keyword args passed on to leastsq
+ 
+    Returns
+    -------
+    exactly as for leastsq,
+    http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.leastsq.html
+ 
+    Notes
+    -----
+    The bounds may not be met if boundsweight is too small;
+    check that with e.g. check_bounds( p, bounds ) below.
+ 
+    To access `x` in `func(p)`, `def func( p, x=xouter )`
+    or make it global, or `self.x` in a class.
+ 
+    There are quite a few methods for box constraints;
+    you'll maybe sing a longer song ...
+    Comments are welcome, test cases most welcome.
+ 
+"""
+# Example: test_leastsq_bounds.py
+
+    if bounds is not None  and  boundsweight > 0:
+        funcbox = lambda p,u,r: np.hstack(( func(p,u,r), _inbox( p, bounds, boundsweight )))
+    else:
+        funcbox = func
+    return optimize.leastsq( funcbox, x0, **kwargs )
+ 
+def _inbox( X, box, weight=1 ):
+    """ -> [tub( Xj, loj, hij ) ... ]
+        all 0  <=>  X in box, lo <= X <= hi
+    """
+    assert len(X) == len(box), "len X %d != len box %d" % (len(X), len(box))
+    return weight * np.array([
+        np.fmax( lo - x, 0 ) + np.fmax( 0, x - hi )
+            for x, (lo,hi) in zip( X, box )])
+ 
+def check_bounds( X, box ):
+    """ print Xj not in box, loj <= Xj <= hij
+        return nr not in
+    """
+    nX, nbox = len(X), len(box)
+    assert nX == nbox, "len X %d != len box %d" % (nX, nbox)
+    nnotin = 0
+    for j, x, (lo,hi) in zip( range(nX), X, box ):
+        if not (lo <= x <= hi):
+            print "check_bounds: x[%d] %g is not in box %g .. %g" % (j, x, lo, hi)
+            nnotin += 1
+    return nnotin
+
+def rankine_model(r,R,V):
+    vout = r.copy()
+    
+    for i,rr in enumerate(vout) :
+        if np.abs(rr) < R : vout[i] = (V*rr) / R
+        elif rr == 0. : vout[i] = 0.
+        else : vout[i] =  (V*R) / rr
+    return vout
+
+def resid(p, r, u):
+    R, V = p
+    return u - rankine_model(r,R,V)
 
 def cyclone(sla,ind):
     '''
@@ -35,7 +116,7 @@ def eddy_amplitude(sla,ind):
     '''
     return np.abs(sla[ind[1],ind[0]])
     
-def solid_body_scale(var,lat,lon,ind):
+def solid_body_scale(var,lat,lon,ind,**kwargs):
     '''
     solid_body_scale
     @summary: Compute the diameter of eddy core using maxima of geostrophic velocities<br />
@@ -59,13 +140,27 @@ def solid_body_scale(var,lat,lon,ind):
     @return diameter, relvort : Diameter (km) and Relative Vorticity (s-1) of detected eddies.
     @author: Renaud DUSSURGET, LER/PAC IFREMER.
     @since : November 2012.
-    @change: Create in November 2012 by RD.
+    @change: Created in November 2012 by RD.
     '''
+    
+    p=kwargs.pop('p',20.)
+    q=kwargs.pop('q',p)
+    
+    filter=kwargs.pop('filter',40.)
+    
+    
     xid=ind[1]
     yid=ind[0]
     ne=np.size(xid)
-    diameter=np.zeros(ne,dtype=np.float64)
-    relvort=np.zeros(ne,dtype=np.float64)
+    diameter=np.zeros(ne,dtype=np.float32) #Peak-to-peak diameter
+    amplitude=np.zeros(ne,dtype=np.float32) #Amplitude over peak-to-peak baseline
+    north=np.zeros(ne,dtype=np.float32) #Position of northern edge
+    south=np.zeros(ne,dtype=np.float32) #Position of southern edge
+    relvort=np.zeros(ne,dtype=np.float32) #Estimated relative vorticity (linear fitted of speed vs radius - chose another model)
+    rk_diameter=np.zeros(ne,dtype=np.float32) #Peak-to-peak diameter of the Rankine vortex 
+    rk_relvort=np.zeros(ne,dtype=np.float32) #Estimated relative vorticity (for a fitted rankine vortex model)
+    rk_center=np.zeros(ne,dtype=int) #Center of unbiased rankine vortex (cf. self advection)
+    self_advect=np.zeros(ne,dtype=np.float32) #Self advection (velocity anomaly)
     
     for j in np.arange(ne) :
 #        print j
@@ -78,7 +173,9 @@ def solid_body_scale(var,lat,lon,ind):
         
         #Fill gaps
         dst, dumlon, dumlat, dumsla, gaplen, ngaps, gapedges, interpolated = grid_track(lat[fg],lon[fg],cursla)
-        ugeo=geost_1d(dumlon,dumlat,dumsla,pl04=True)
+        ugeo=geost_1d(dumlon,dumlat,dumsla,pl04=True,filter=filter, p=p,q=q) #Why is this going wrong...
+        
+        northward=dumlat[-1] > dumlat[0]
         
         #Update yid with resampled SLA array
         dumy = np.arange(len(dst))[~interpolated][dumy]
@@ -90,64 +187,148 @@ def solid_body_scale(var,lat,lon,ind):
 #            right=gapedges[0,np.where(gapedges[0,:] >= dumy)[0][0]] if (gapedges[0,:] >= dumy).any() else len(dumsla)-1
 #            dumsla=dumsla[left:right+1]
             
-        #Get sla profile on both sides of the eddy 
-        dumsla_r = dumsla[dumy:]      #np.roll(cursla,-dumy)
-        ugeo_r = ugeo[dumy:]
-        dumsla_l = dumsla[dumy:0:-1]  #np.roll(cursla[::-1],dumy+1)
-        ugeo_l = ugeo[dumy:0:-1]
-        nr = len(dumsla_r)
-        nl = len(dumsla_l)
+        #Get sla profile on both sides of the eddy
+        dumsla_n = dumsla[dumy:] if northward else dumsla[dumy:0:-1]
+        dumsla_s = dumsla[dumy:0:-1] if northward else dumsla[dumy:]
+        ugeo_n = ugeo[dumy:] if northward else ugeo[dumy:0:-1]
+        ugeo_s = ugeo[dumy:0:-1] if northward else ugeo[dumy:] 
+#        dumsla_s = dumsla[dumy:0:-1]  #np.roll(cursla[::-1],dumy+1)
+        nn = len(dumsla_n)
+        ns = len(dumsla_s)
         
-        #If not enought data on one side, take the opposite
-        if nr < 3 :
-            dumsla_r = dumsla_l
-            ugeo_r = ugeo_l
-            nr=nl
-        if nl < 3 :
-            dumsla_l = dumsla_r
-            ugeo_l = ugeo_r
-            nl=nr
+        iscyclone=dumsla_s[0] < 0
         
-        #Detect local velocity maxima on both sides of eddy
-        mx_l = np.where(maximum_filter1d(np.abs(ugeo_l),3) == np.abs(ugeo_l))[0] #Do not take into account eddy center at position 0
-        mx_r = np.where(maximum_filter1d(np.abs(ugeo_r),3) == np.abs(ugeo_r))[0]
-        mx_l = mx_l[mx_l != 0] #Rq: This happens when peak is found at eddy center... This could possibly avoided?
-        mx_r = mx_r[mx_r != 0]
+#        #If not enough data on one side, take the opposite #
+#        if nn < 3 :
+#            dumsla_n = dumsla_s
+#            ugeo_n = ugeo_s
+#            nn=ns
+#        if ns < 3 :
+#            dumsla_s = dumsla_n
+#            ugeo_s = ugeo_n
+#            ns=nn
+        
+        #Detect local velocity maxima on both sides of eddy (we keep only the four first peaks)
+        if (northward and iscyclone) or (not northward and not iscyclone): #cyclone on northward track or anticyclone on southward track
+            mx_s = np.where(maximum_filter1d(ugeo_s,3) == ugeo_s)[0]
+            mx_n = np.where(maximum_filter1d(-ugeo_n,3) == -ugeo_n)[0]
+        elif (northward and not iscyclone) or (not northward and iscyclone) : #anticyclone on northward track or cyclone on southward track
+            mx_s = np.where(maximum_filter1d(-ugeo_s,3) == -ugeo_s)[0]
+            mx_n = np.where(maximum_filter1d(ugeo_n,3) == ugeo_n)[0]
+        else : raise Exception('This case is not possible')
+        
+        #We only retain peaks with a SLA difference over than 2 cm from SLA peak to avoid points near peak
+        #Rq: This happens when peak is found at eddy center... This could possibly avoided?
+        mx_s = mx_s[(mx_s != 0) & (np.abs(dumsla_s[mx_s] - dumsla_s[0]) > 0.01)]
+        mx_n = mx_n[(mx_n != 0) & (np.abs(dumsla_n[mx_n] - dumsla_n[0]) > 0.01)]
         
         #Replace with data from the opposite side if no maxima are found
-        if len(mx_l) == 0 :
-            dumsla_l = dumsla_r.copy()
-            ugeo_l = ugeo_r.copy()
-            nl=nr
-            mx_l = mx_r[0]
-        else : mx_l = mx_l[0]
-            
-        if len(mx_r) == 0 :
-            dumsla_r = dumsla_l.copy()
-            ugeo_r = ugeo_l.copy()
-            nr=nl
-            mx_r = mx_l[0]
-        else : mx_r = mx_r[0]
+        if len(mx_n) == 0 :
+            dumsla_n = dumsla_s.copy()
+            ugeo_n = ugeo_s.copy()
+            nn=ns
+            mx_n=mx_s
         
+        if len(mx_s) == 0 :
+            dumsla_s = dumsla_n.copy()
+            ugeo_s = ugeo_n.copy()
+            ns=nn
+            mx_s=mx_n
+            
+        mx_s = mx_s[0] #Retain first peak only
+        mx_n = mx_n[0] #Retain first peak only
+        
+#        north[j] = dumy - mx_n
+#        south[j] = mx_s
+
+        amplitude[j]=np.abs(dumsla[dumy] - np.mean([dumsla_n[mx_n],dumsla_s[mx_s]]))
+        
+        #Show detection
+#        plt.plot(dst,dumsla);plt.plot(dst[dumy],dumsla[dumy],'or');plt.plot(dst[dumy+mx_n],dumsla[dumy+mx_n],'og');plt.plot(dst[dumy-mx_s],dumsla[dumy-mx_s],'og');plt.show()
         
         #Fit a 2nd order polynomial on the 4 points surrounding the extrema
-        if mx_l != nl - 1 :
-            if np.abs(ugeo_l[mx_l-1]) > np.abs(ugeo_l[mx_l+1]) : fit= np.polyfit(dst[mx_l-1:mx_l+3 if mx_l+3 <= nl else nl],ugeo_l[mx_l-1:mx_l+3 if mx_l+3 <= nl else nl], 2)
-            else : fit= np.polyfit(dst[mx_l-2 if mx_l >= 2 else 0:mx_l+2],ugeo_l[mx_l-2 if mx_l >= 2 else 0:mx_l+2], 2)
-        else : fit=np.polyfit(dst[mx_l-2 if mx_l >= 2 else 0:mx_l+1],ugeo_l[mx_l-2 if mx_l >= 2 else 0:mx_l+1], 2)
-        diameter[j] += (-fit[1]) / (2 * fit[0])
+        if mx_s != ns - 1 : #if the peak is not the furthest point
+            if np.abs(ugeo_s[mx_s-1]) > np.abs(ugeo_s[mx_s+1]) : fit= np.polyfit(dst[mx_s-1:mx_s+3 if mx_s+3 <= ns else ns],ugeo_s[mx_s-1:mx_s+3 if mx_s+3 <= ns else ns], 2)
+            else : fit= np.polyfit(dst[mx_s-2 if mx_s >= 2 else 0:mx_s+2],ugeo_s[mx_s-2 if mx_s >= 2 else 0:mx_s+2], 2)
+        else : fit=np.polyfit(dst[mx_s-2 if mx_s >= 2 else 0:mx_s+1],ugeo_s[mx_s-2 if mx_s >= 2 else 0:mx_s+1], 2)
+        radius_s = (-fit[1]) / (2 * fit[0]) #This is the minimum value of the 2nd order polynomial
+        if (radius_s > dst[mx_s-1]) & (radius_s < dst[mx_s+1]) :
+            diameter[j] += radius_s
+        else :
+            diameter[j] += dst[mx_s]
         
-        if mx_r != nr - 1 :
-            if np.abs(ugeo_r[mx_r-1]) > np.abs(ugeo_r[mx_r+1]) : fit= np.polyfit(dst[mx_r-1:mx_r+3 if mx_r+3 <= nr else nr],ugeo_r[mx_r-1:mx_r+3 if mx_r+3 <= nr else nr], 2)
-            else : fit= np.polyfit(dst[mx_r-2 if mx_r >= 2 else 0:mx_r+2],ugeo_r[mx_r-2 if mx_r >= 2 else 0:mx_r+2], 2)
-        else : fit=np.polyfit(dst[mx_r-2 if mx_r >= 2 else 0:mx_r+1],ugeo_r[mx_r-2 if mx_r >= 2 else 0:mx_r+1], 2)
-        diameter[j] += np.abs((-fit[1]) / (2 * fit[0]))
+        dtoto=np.arange(dst[mx_s-1],dst[mx_s+3 if mx_s+3 <= ns else ns])
+        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
+#        plt.plot(dst[mx_s-1:mx_s+3 if mx_s+3 <= ns else ns],ugeo_s[mx_s-1:mx_s+3 if mx_s+3 <= ns else ns]);plt.plot(dtoto,toto)
+        
+        if mx_n != nn - 1 :
+            if np.abs(ugeo_n[mx_n-1]) > np.abs(ugeo_n[mx_n+1]) : fit= np.polyfit(dst[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn],ugeo_n[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn], 2)
+            else : fit= np.polyfit(dst[mx_n-2 if mx_n >= 2 else 0:mx_n+2],ugeo_n[mx_n-2 if mx_n >= 2 else 0:mx_n+2], 2)
+        else : fit=np.polyfit(dst[mx_n-2 if mx_n >= 2 else 0:mx_n+1],ugeo_n[mx_n-2 if mx_n >= 2 else 0:mx_n+1], 2)
+        radius_n = (-fit[1]) / (2 * fit[0]) #This is the minimum value of the 2nd order polynomial
+        if (radius_n > dst[mx_n-1]) & (radius_n < dst[mx_n+1]) :
+            diameter[j] += radius_n
+        else :
+            diameter[j] += dst[mx_n]
+        
+#        diameter[j] += np.abs((-fit[1]) / (2 * fit[0]))
+        
+#        print diameter[j], \
+#            calcul_distance(dumlat[dumy-mx_s],dumlon[dumy-mx_s],dumlat[dumy+mx_n],dumlon[dumy+mx_n]), \
+#            np.abs(dst[dumy] - dst[dumy+mx_n]) + np.abs(dst[dumy] - dst[dumy-mx_s]) , \
+#            np.abs(dst[mx_n]) + np.abs(dst[mx_s])
+        dumdiam=np.append(dumdiam,np.abs(dst[mx_n]) + np.abs(dst[mx_s])) if j > 0 else [np.abs(dst[mx_n]) + np.abs(dst[mx_s])]
+        dtoto=np.arange(dst[mx_n-1],dst[mx_n+3 if mx_n+3 <= nn else nn])
+        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
+#        plt.plot(dst[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn],ugeo_n[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn]);plt.plot(dtoto,toto);plt.show()
+ 
+        
         
         #Compute relative vorticity
-        relvort[j] = np.median(np.append(np.abs(ugeo_r[1:mx_r+1])/(dst[1:mx_r+1]*1e3),np.abs(ugeo_l[1:mx_l+1])/(dst[1:mx_l+1]*1e3)))
+        #--> Linear fitting of speed against distance
+#        print j
+        curdst=np.append(-dst[mx_s:0:-1]*1e3,dst[1:mx_n+1]*1e3)
+        curugeo=np.append(ugeo_s[mx_s:0:-1],ugeo_n[1:mx_n+1])
+        if (northward and iscyclone) or (not northward and not iscyclone) : relvort[j]=-np.polyfit(curdst, curugeo, 1)[0] 
+        elif (northward and not iscyclone) or (not northward and iscyclone) : relvort[j]=np.polyfit(curdst, curugeo, 1)[0] 
+        
+        #Fit a Rankine vortex profile
+        
+        #First center eddy on zero (remove self-advection)
+        Vanom=np.mean([ugeo_s[mx_s],ugeo_n[mx_n]])
+#        V=np.max(np.abs([ugeo_s[mx_s],ugeo_n[mx_n]]-Vanom)) #estimated circulation
+        V=ugeo_n[mx_n]-Vanom #estimated  circulation (negative northward for cyclones, positive for anticyclones)
+        R=diameter[j] / 2.0 #estimated radius
+        dx=np.median(deriv(dst)) #sampling
+        rid=np.arange(ne)[np.abs(dst - dst[dumy]) < R][np.argmin(np.abs(ugeo-Vanom)[np.abs(dst - dst[dumy]) < R])]
+        r=(dst - dst[dumy])[rid] #distance offset to debiased eddy 
+        
+        pn=np.ceil(R/dx) #Number of points to theorical peaks
+        u1=ugeo_s[:pn*4][::-1];u2=ugeo_n[1:pn*4]
+        d1=dst[0:len(u1)];d2=dst[1:len(u2)+1]
+        curdst2=np.append(-d1[::-1],d2)
+        curugeo2=np.append(u1,u2)
+#        [Rout, Vout], flag  = optimize.leastsq(resid, [R,V], args=(dst-dst[dumy]-r,ugeo-Vanom))
+        [Rout, Vout], flag = leastsq_bounds( resid, [R,V], [[0,1.5*R],[0,2*V]], args=(dst-dst[dumy]-r,ugeo-Vanom)) #constrained lsq fit
+        
+        rk_diameter[j]=Rout*2.0
+        rk_relvort[j]=Vout / (Rout*1e3) #if ( (Rout/R) < 1.5) else relvort[j] #This is now constrained whithin LS fitting
+        if (northward and iscyclone) or (not northward and not iscyclone) : rk_relvort[j]*=-1.
+#        print rk_relvort[j], relvort[j]
+        self_advect[j]=Vanom
+        rk_center[j]=np.arange(ne)[rid]
+        dumsla_n[mx_n]
+        
+#        plt.subplot(2,1,1);plt.title('Eddy #{0} (x:{1} , t:{2})\nRV: rk={3}, lin={4}'.format(j,xid[j],yid[j],rk_relvort[j],relvort[j]))
+#        plt.plot(dst-dst[dumy]-r,dumsla);plt.plot(0,dumsla[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,dumsla[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],dumsla[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],dumsla[dumy-mx_s],'og');plt.ylabel('SLA (m)')
+#        dum=rankine_model(dst-dst[dumy]-r, Rout, Vout)
+#        plt.subplot(2,1,2);plt.plot(dst-dst[dumy]-r,ugeo-Vanom,'-k');plt.plot(0,(ugeo-Vanom)[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,(ugeo-Vanom)[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],(ugeo-Vanom)[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],(ugeo-Vanom)[dumy-mx_s],'og');plt.plot(dst-dst[dumy]-r,dum,'-b');plt.ylabel('Velocity anomaly(m.s-1)');plt.xlabel('Distance to offseted center (km)')
+#        plt.show()
+        
+#        relvort[j] = np.median(np.append(np.abs(ugeo_n[1:mx_n+1])/(dst[1:mx_n+1]*1e3),np.abs(ugeo_s[1:mx_s+1])/(dst[1:mx_s+1]*1e3)))
 #        if (dumsla[dumy] > dumsla[dumy-1]) | (dumsla[dumy] > dumsla[dumy+1]) : relvort[j] *= -1 #Inver sign if anticyclonic  
         
-    return diameter, relvort
+    return diameter, relvort, amplitude, rk_relvort, rk_center, rk_diameter, self_advect
 
 
 
@@ -270,15 +451,17 @@ def decorrelation_scale(var,lat,lon,ind):
 #    dist_shist = np.repeat(np.NaN,len(dhist))
 
 
-def get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum):
+def get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum,filter=40.,p=12.):
     #Sort indexes against time
     isort=np.argsort(time[eind[1]])
     eind[0][:]=eind[0][isort]
     eind[1][:]=eind[1][isort]
     
-    #Detect eddies and select cyclones
-    diameter, symmetric= decorrelation_scale(sla, lat, lon, eind)
-    wvdiameter, wvsymmetric = decorrelation_scale(wvsla, lat, lon, eind)
-    ugdiameter, relvort = solid_body_scale(sla, lat, lon, eind)
-    amplitude = eddy_amplitude(np.sqrt(sa_spectrum), eind)*100.
-    return amplitude, diameter, relvort, ugdiameter, wvdiameter
+    #Get eddy characteristics
+    amplitude = eddy_amplitude(np.sqrt(sa_spectrum), eind)*100. #Convert to CM
+#    diameter, symmetric= decorrelation_scale(sla, lat, lon, eind)
+    diameter, symmetric = decorrelation_scale(wvsla, lat, lon, eind)
+    ugdiameter, relvort, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect = solid_body_scale(wvsla, lat, lon, eind,filter=filter,p=p)
+    ugamplitude=ugamplitude*100. #Convert to CM
+    
+    return amplitude, diameter, relvort, ugdiameter, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect
