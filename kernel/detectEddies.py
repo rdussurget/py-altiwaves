@@ -203,9 +203,9 @@ def clean_indices(sa_spectrum,sa_lscales,eind,params):
     
     return eind
 
-def detection(sa_spectrum,sa_lscales,params,amplim=0.03,twoD=True):
-    eind = _2D(sa_spectrum, amplim=amplim) if twoD else _1D(sa_spectrum, amplim=amplim)
+def detection(sa_spectrum,sa_lscales,params,amplim=0.03,twoD=True,clean=True, **kwargs):
+    eind = _2D(sa_spectrum, amplim=amplim, **kwargs) if twoD else _1D(sa_spectrum, amplim=amplim, **kwargs)
     eind = np.squeeze(eind)
-    eind = clean_indices(sa_spectrum,sa_lscales, eind,params)
+    if clean : eind = clean_indices(sa_spectrum,sa_lscales, eind,params)
     return eind
     
