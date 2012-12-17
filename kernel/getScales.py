@@ -81,7 +81,7 @@ def rankine_model(r,R,V):
     vout = r.copy()
     
     for i,rr in enumerate(vout) :
-        if np.abs(rr) < R : vout[i] = (V*rr) / R
+        if np.abs(rr) < np.abs(R) : vout[i] = (V*rr) / R
         elif rr == 0. : vout[i] = 0.
         else : vout[i] =  (V*R) / rr
     return vout
@@ -173,7 +173,8 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
         
         #Fill gaps
         dst, dumlon, dumlat, dumsla, gaplen, ngaps, gapedges, interpolated = grid_track(lat[fg],lon[fg],cursla)
-        ugeo=geost_1d(dumlon,dumlat,dumsla,pl04=True,filter=filter, p=p,q=q) #Why is this going wrong...
+        ugeo=geost_1d(dumlon,dumlat,dumsla,pl04=True,filter=filter, p=p,q=q)
+        ncur=len(dst)
         
         northward=dumlat[-1] > dumlat[0]
         
@@ -209,15 +210,15 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
 #            ns=nn
         
         #Detect local velocity maxima on both sides of eddy (we keep only the four first peaks)
-        if (northward and iscyclone) or (not northward and not iscyclone): #cyclone on northward track or anticyclone on southward track
+        if (iscyclone): #cyclone : negative speeds to the north, positive to the south
             mx_s = np.where(maximum_filter1d(ugeo_s,3) == ugeo_s)[0]
             mx_n = np.where(maximum_filter1d(-ugeo_n,3) == -ugeo_n)[0]
-        elif (northward and not iscyclone) or (not northward and iscyclone) : #anticyclone on northward track or cyclone on southward track
+        elif (not iscyclone) : #anticyclone : positive speeds to the north, negative to the south
             mx_s = np.where(maximum_filter1d(-ugeo_s,3) == -ugeo_s)[0]
             mx_n = np.where(maximum_filter1d(ugeo_n,3) == ugeo_n)[0]
         else : raise Exception('This case is not possible')
         
-        #We only retain peaks with a SLA difference over than 2 cm from SLA peak to avoid points near peak
+        #We only retain peaks with a SLA difference over than 1 cm from SLA peak to avoid points near peak
         #Rq: This happens when peak is found at eddy center... This could possibly avoided?
         mx_s = mx_s[(mx_s != 0) & (np.abs(dumsla_s[mx_s] - dumsla_s[0]) > 0.01)]
         mx_n = mx_n[(mx_n != 0) & (np.abs(dumsla_n[mx_n] - dumsla_n[0]) > 0.01)]
@@ -257,8 +258,8 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
         else :
             diameter[j] += dst[mx_s]
         
-        dtoto=np.arange(dst[mx_s-1],dst[mx_s+3 if mx_s+3 <= ns else ns])
-        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
+#        dtoto=np.arange(dst[mx_s-1],dst[mx_s+3 if mx_s+3 <= ns else ns])
+#        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
 #        plt.plot(dst[mx_s-1:mx_s+3 if mx_s+3 <= ns else ns],ugeo_s[mx_s-1:mx_s+3 if mx_s+3 <= ns else ns]);plt.plot(dtoto,toto)
         
         if mx_n != nn - 1 :
@@ -278,45 +279,47 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
 #            np.abs(dst[dumy] - dst[dumy+mx_n]) + np.abs(dst[dumy] - dst[dumy-mx_s]) , \
 #            np.abs(dst[mx_n]) + np.abs(dst[mx_s])
         dumdiam=np.append(dumdiam,np.abs(dst[mx_n]) + np.abs(dst[mx_s])) if j > 0 else [np.abs(dst[mx_n]) + np.abs(dst[mx_s])]
-        dtoto=np.arange(dst[mx_n-1],dst[mx_n+3 if mx_n+3 <= nn else nn])
-        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
+#        dtoto=np.arange(dst[mx_n-1],dst[mx_n+3 if mx_n+3 <= nn else nn])
+#        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
 #        plt.plot(dst[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn],ugeo_n[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn]);plt.plot(dtoto,toto);plt.show()
- 
-        
         
         #Compute relative vorticity
         #--> Linear fitting of speed against distance
 #        print j
         curdst=np.append(-dst[mx_s:0:-1]*1e3,dst[1:mx_n+1]*1e3)
         curugeo=np.append(ugeo_s[mx_s:0:-1],ugeo_n[1:mx_n+1])
-        if (northward and iscyclone) or (not northward and not iscyclone) : relvort[j]=-np.polyfit(curdst, curugeo, 1)[0] 
-        elif (northward and not iscyclone) or (not northward and iscyclone) : relvort[j]=np.polyfit(curdst, curugeo, 1)[0] 
-        
+        relvort[j]=-np.polyfit(curdst, curugeo, 1)[0]
+#        if northward : relvort[j]*=-1.
+#        print relvort[j]
         #Fit a Rankine vortex profile
         
         #First center eddy on zero (remove self-advection)
         Vanom=np.mean([ugeo_s[mx_s],ugeo_n[mx_n]])
 #        V=np.max(np.abs([ugeo_s[mx_s],ugeo_n[mx_n]]-Vanom)) #estimated circulation
         V=ugeo_n[mx_n]-Vanom #estimated  circulation (negative northward for cyclones, positive for anticyclones)
-        R=diameter[j] / 2.0 #estimated radius
+        R=(diameter[j] / 2.0) if northward else -(diameter[j] / 2.0) #estimated radius
         dx=np.median(deriv(dst)) #sampling
-        rid=np.arange(ne)[np.abs(dst - dst[dumy]) < R][np.argmin(np.abs(ugeo-Vanom)[np.abs(dst - dst[dumy]) < R])]
+        rid=np.arange(ncur)[np.abs(dst - dst[dumy]) < np.abs(R)][np.argmin(np.abs(ugeo-Vanom)[np.abs(dst - dst[dumy]) < np.abs(R)])]
         r=(dst - dst[dumy])[rid] #distance offset to debiased eddy 
         
         pn=np.ceil(R/dx) #Number of points to theorical peaks
         u1=ugeo_s[:pn*4][::-1];u2=ugeo_n[1:pn*4]
         d1=dst[0:len(u1)];d2=dst[1:len(u2)+1]
-        curdst2=np.append(-d1[::-1],d2)
-        curugeo2=np.append(u1,u2)
-#        [Rout, Vout], flag  = optimize.leastsq(resid, [R,V], args=(dst-dst[dumy]-r,ugeo-Vanom))
-        [Rout, Vout], flag = leastsq_bounds( resid, [R,V], [[0,1.5*R],[0,2*V]], args=(dst-dst[dumy]-r,ugeo-Vanom)) #constrained lsq fit
+#        curdst2=np.append(-d1[::-1],d2)
+#        curugeo2=np.append(u1,u2)
+#        [Rout, Vout], flag  = optimize.leastsq(resid, [R,V], args=(dst-dst[dumy]-r,ugeo-Vanom)
+        [Rout, Vout], flag = leastsq_bounds( resid, [R,V], [[0,1.5*R],[0,2*V]], args=(dst-dst[dumy]-r,ugeo-Vanom))
+#        if (iscyclone and northward) or (not iscyclone and not northward):
+#            [Rout, Vout], flag = leastsq_bounds( resid, [R,V], [[0,R],[2*V,0]], args=(dst-dst[dumy]-r,ugeo-Vanom)) #constrained lsq fit
+#        else :
+#            [Rout, Vout], flag = leastsq_bounds( resid, [R,V], [[0,R],[0,2*V]], args=(dst-dst[dumy]-r,ugeo-Vanom))
         
         rk_diameter[j]=Rout*2.0
         rk_relvort[j]=Vout / (Rout*1e3) #if ( (Rout/R) < 1.5) else relvort[j] #This is now constrained whithin LS fitting
-        if (northward and iscyclone) or (not northward and not iscyclone) : rk_relvort[j]*=-1.
+        if (northward): rk_relvort[j]*=-1.
 #        print rk_relvort[j], relvort[j]
         self_advect[j]=Vanom
-        rk_center[j]=np.arange(ne)[rid]
+        rk_center[j]=np.arange(ncur)[rid]
         dumsla_n[mx_n]
         
 #        plt.subplot(2,1,1);plt.title('Eddy #{0} (x:{1} , t:{2})\nRV: rk={3}, lin={4}'.format(j,xid[j],yid[j],rk_relvort[j],relvort[j]))
@@ -324,7 +327,8 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
 #        dum=rankine_model(dst-dst[dumy]-r, Rout, Vout)
 #        plt.subplot(2,1,2);plt.plot(dst-dst[dumy]-r,ugeo-Vanom,'-k');plt.plot(0,(ugeo-Vanom)[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,(ugeo-Vanom)[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],(ugeo-Vanom)[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],(ugeo-Vanom)[dumy-mx_s],'og');plt.plot(dst-dst[dumy]-r,dum,'-b');plt.ylabel('Velocity anomaly(m.s-1)');plt.xlabel('Distance to offseted center (km)')
 #        plt.show()
-        
+#        pass
+                
 #        relvort[j] = np.median(np.append(np.abs(ugeo_n[1:mx_n+1])/(dst[1:mx_n+1]*1e3),np.abs(ugeo_s[1:mx_s+1])/(dst[1:mx_s+1]*1e3)))
 #        if (dumsla[dumy] > dumsla[dumy-1]) | (dumsla[dumy] > dumsla[dumy+1]) : relvort[j] *= -1 #Inver sign if anticyclonic  
         
@@ -461,7 +465,8 @@ def get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum,filter=40.,p=12.
     amplitude = eddy_amplitude(np.sqrt(sa_spectrum), eind)*100. #Convert to CM
 #    diameter, symmetric= decorrelation_scale(sla, lat, lon, eind)
     diameter, symmetric = decorrelation_scale(wvsla, lat, lon, eind)
-    ugdiameter, relvort, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect = solid_body_scale(wvsla, lat, lon, eind,filter=filter,p=p)
+    ugdiameter, relvort, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect = \
+        solid_body_scale(wvsla, lat, lon, eind,filter=filter,p=p)
     ugamplitude=ugamplitude*100. #Convert to CM
     
     return amplitude, diameter, relvort, ugdiameter, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect

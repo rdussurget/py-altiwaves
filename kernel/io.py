@@ -98,8 +98,8 @@ def save_detection(filename,
     dataStr['record']={'data':np.arange(nx),'long_name':'record_number','units':'1','_dimensions':('record',)}
     dataStr['xind']={'data':eind[0,:],'long_name':'along_track_index','units':'1','_dimensions':('record',)}
     dataStr['yind']={'data':eind[1,:],'long_name':'time_index','units':'1','_dimensions':('record',)}
-    dataStr['lon']={'data':lon,'long_name':'longitude','units':'degrees_north','_dimensions':('record',)}
-    dataStr['lat']={'data':lat,'long_name':'latitude','units':'degrees_east','_dimensions':('record',)}
+    dataStr['lon']={'data':lon[eind[0,:]],'long_name':'longitude','units':'degrees_north','_dimensions':('record',)}
+    dataStr['lat']={'data':lat[eind[0,:]],'long_name':'latitude','units':'degrees_east','_dimensions':('record',)}
     dataStr['amplitude']={'data':amplitude,'long_name':'amplitude','units':'cm','_dimensions':('record',)}
     dataStr['diameter']={'data':diameter,'long_name':'diameter','units':'km','_dimensions':('record',)}
     dataStr['relvort']={'data':relvort,'long_name':'relative_vorticity','units':'s-1','_dimensions':('record',)}
