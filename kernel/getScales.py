@@ -7,6 +7,7 @@ from altimetry.tools import grid_track, geost_1d, deriv
 from altimetry.tools.spatial_tools import calcul_distance
 from scipy.optimize.minpack import curve_fit
 if __debug__ : import matplotlib.pyplot as plt
+import warnings
 
 '''
 Created on 12 nov. 2012
@@ -116,7 +117,7 @@ def eddy_amplitude(sla,ind):
     '''
     return np.abs(sla[ind[1],ind[0]])
     
-def solid_body_scale(var,lat,lon,ind,**kwargs):
+def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
     '''
     solid_body_scale
     @summary: Compute the diameter of eddy core using maxima of geostrophic velocities<br />
@@ -143,11 +144,12 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
     @change: Created in November 2012 by RD.
     '''
     
+    #Set defaults values for geostrophic velocities
     p=kwargs.pop('p',20.)
     q=kwargs.pop('q',p)
-    
     filter=kwargs.pop('filter',40.)
     
+    if verbose >= 1 : print '\tsolid_body_scale() running: SLA filtering prior computation of velocities:{0} km, Velocity filtering:{1} km'.format(np.int(filter),np.int(p+q))
     
     xid=ind[1]
     yid=ind[0]
@@ -197,7 +199,7 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
         nn = len(dumsla_n)
         ns = len(dumsla_s)
         
-        iscyclone=dumsla_s[0] < 0
+        iscyclone=dumsla[dumy] < 0
         
 #        #If not enough data on one side, take the opposite #
 #        if nn < 3 :
@@ -220,8 +222,8 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
         
         #We only retain peaks with a SLA difference over than 1 cm from SLA peak to avoid points near peak
         #Rq: This happens when peak is found at eddy center... This could possibly avoided?
-        mx_s = mx_s[(mx_s != 0) & (np.abs(dumsla_s[mx_s] - dumsla_s[0]) > 0.01)]
-        mx_n = mx_n[(mx_n != 0) & (np.abs(dumsla_n[mx_n] - dumsla_n[0]) > 0.01)]
+        mx_s = mx_s[(mx_s != 0) & (np.abs(dumsla_s[mx_s] - dumsla[dumy]) > 0.01)]
+        mx_n = mx_n[(mx_n != 0) & (np.abs(dumsla_n[mx_n] - dumsla[dumy]) > 0.01)]
         
         #Replace with data from the opposite side if no maxima are found
         if len(mx_n) == 0 :
@@ -322,12 +324,14 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
         rk_center[j]=np.arange(ncur)[rid]
         dumsla_n[mx_n]
         
-#        plt.subplot(2,1,1);plt.title('Eddy #{0} (x:{1} , t:{2})\nRV: rk={3}, lin={4}'.format(j,xid[j],yid[j],rk_relvort[j],relvort[j]))
-#        plt.plot(dst-dst[dumy]-r,dumsla);plt.plot(0,dumsla[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,dumsla[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],dumsla[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],dumsla[dumy-mx_s],'og');plt.ylabel('SLA (m)')
-#        dum=rankine_model(dst-dst[dumy]-r, Rout, Vout)
-#        plt.subplot(2,1,2);plt.plot(dst-dst[dumy]-r,ugeo-Vanom,'-k');plt.plot(0,(ugeo-Vanom)[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,(ugeo-Vanom)[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],(ugeo-Vanom)[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],(ugeo-Vanom)[dumy-mx_s],'og');plt.plot(dst-dst[dumy]-r,dum,'-b');plt.ylabel('Velocity anomaly(m.s-1)');plt.xlabel('Distance to offseted center (km)')
-#        plt.show()
-#        pass
+#        try :
+#            plt.subplot(2,1,1);plt.title('Eddy #{0} (x:{1} , t:{2})\nRV: rk={3}, lin={4}'.format(j,xid[j],yid[j],rk_relvort[j],relvort[j]))
+#            plt.plot(dst-dst[dumy]-r,dumsla,'-ok',markersize=2);plt.plot(0,dumsla[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,dumsla[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],dumsla[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],dumsla[dumy-mx_s],'og');plt.ylabel('SLA (m)')
+#            dum=rankine_model(dst-dst[dumy]-r, Rout, Vout)
+#            plt.subplot(2,1,2);plt.plot(dst-dst[dumy]-r,ugeo-Vanom,'-k');plt.plot(0,(ugeo-Vanom)[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,(ugeo-Vanom)[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],(ugeo-Vanom)[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],(ugeo-Vanom)[dumy-mx_s],'og');plt.plot(dst-dst[dumy]-r,dum,'-b');plt.ylabel('Velocity anomaly(m.s-1)');plt.xlabel('Distance to offseted center (km)')
+#            plt.show()
+#        except :
+#            pass
                 
 #        relvort[j] = np.median(np.append(np.abs(ugeo_n[1:mx_n+1])/(dst[1:mx_n+1]*1e3),np.abs(ugeo_s[1:mx_s+1])/(dst[1:mx_s+1]*1e3)))
 #        if (dumsla[dumy] > dumsla[dumy-1]) | (dumsla[dumy] > dumsla[dumy+1]) : relvort[j] *= -1 #Inver sign if anticyclonic  
@@ -336,7 +340,7 @@ def solid_body_scale(var,lat,lon,ind,**kwargs):
 
 
 
-def decorrelation_scale(var,lat,lon,ind):
+def decorrelation_scale(var,lat,lon,ind, verbose=1):
     '''
     solid_body_scale
     @summary: Compute the decorrelation length-scale of detected eddies.
@@ -363,6 +367,8 @@ def decorrelation_scale(var,lat,lon,ind):
     ne=np.size(xid)
     diameter=np.zeros(ne,dtype=np.float64)
     symmetric=np.zeros(ne,dtype=bool)
+    
+    if verbose >= 1 : print '\tdecorrelation_scale() running'
     
     for j in np.arange(ne) :
 #        print j
@@ -455,18 +461,24 @@ def decorrelation_scale(var,lat,lon,ind):
 #    dist_shist = np.repeat(np.NaN,len(dhist))
 
 
-def get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum,filter=40.,p=12.):
+def get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum,filter=40.,p=12.,verbose=1):
+    
+    if verbose >= 1:
+        str_header = '\t===Eddy characteristics==='    
+        print(str_header)
     #Sort indexes against time
     isort=np.argsort(time[eind[1]])
     eind[0][:]=eind[0][isort]
     eind[1][:]=eind[1][isort]
     
+    if verbose  < 2 : warnings.simplefilter('ignore', np.RankWarning)
+    
     #Get eddy characteristics
     amplitude = eddy_amplitude(np.sqrt(sa_spectrum), eind)*100. #Convert to CM
 #    diameter, symmetric= decorrelation_scale(sla, lat, lon, eind)
-    diameter, symmetric = decorrelation_scale(wvsla, lat, lon, eind)
+    diameter, symmetric = decorrelation_scale(wvsla, lat, lon, eind,verbose=verbose)
     ugdiameter, relvort, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect = \
-        solid_body_scale(wvsla, lat, lon, eind,filter=filter,p=p)
+        solid_body_scale(wvsla, lat, lon, eind,filter=filter,p=p,verbose=verbose)
     ugamplitude=ugamplitude*100. #Convert to CM
     
     return amplitude, diameter, relvort, ugdiameter, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect

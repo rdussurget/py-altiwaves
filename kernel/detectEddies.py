@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from kernel.getScales import cyclone, decorrelation_scale, solid_body_scale,\
     eddy_amplitude
 
-def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.], 
+def _2D(sa_spectrum, amplim=0.04, kernel=None, verbose=1): #len_range=[60.,450.], 
     '''
     _2D
     @summary: Eddy detection on both axes of the scale-averaged spectrum.
@@ -38,6 +38,8 @@ def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.],
     nt=shape[0]
     npts=shape[1]
     
+    #Print detection parameters
+    ###########################   
     #Interpolate on missing points (this should be to avoid peaking anomalies on edges of data gaps).
     if isinstance(sas,np.ma.masked_array) :
         xx=np.arange(npts)
@@ -46,7 +48,8 @@ def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.],
         points=zip(*(xout[~sa_spectrum.mask].flatten(), yout[~sa_spectrum.mask].flatten()))
         values=sas.data[~sa_spectrum.mask].flatten()
         xi=zip(*(xout[sa_spectrum.mask].flatten(), yout[sa_spectrum.mask].flatten()))
-        sas[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear') #Do not use nearest neighbour with maximum_filter
+        sas[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear',fill_value=sas.fill_value) #Do not use nearest neighbour with maximum_filter
+        sas.mask[sas.data == sas.fill_value]=True
     
     #define maximum filter kernel
     if kernel is None :
@@ -67,6 +70,10 @@ def _2D(sa_spectrum, amplim=3., kernel=None): #len_range=[60.,450.],
     #    kx*=anisotropy[0]
     #    ky*=anisotropy[1]
     #    kernel = np.exp(-(kx**2+ky**2)).transpose() > 0.05 #Kernel valid for distances < 95% of normal distribution
+    
+    if verbose >= 1 : print('\tkernel shape :\t{0}'.format(kernel.shape))
+    if verbose > 1 :
+        for i in np.arange(kernel.shape[0]) : print ('\tkernel:\t\t'+str(kernel[i]) if i == 0 else '\t\t\t'+str(kernel[i]))
     
     data_max = filters.maximum_filter(sas, footprint=kernel)
     maxima = (sas == data_max) & (data_max > amplim**2) & (~sa_spectrum.mask)
@@ -203,9 +210,15 @@ def clean_indices(sa_spectrum,sa_lscales,eind,params):
     
     return eind
 
-def detection(sa_spectrum,sa_lscales,params,amplim=0.03,twoD=True,clean=True, **kwargs):
-    eind = _2D(sa_spectrum, amplim=amplim, **kwargs) if twoD else _1D(sa_spectrum, amplim=amplim, **kwargs)
+def detection(sa_spectrum,sa_lscales,params,amplim=0.03,twoD=True,clean=True, verbose=1, **kwargs):
+    if verbose >= 1:
+        str_header = '\t===Eddy detection parameters===\n\tthreshold:{0}cm, clean:{1}, 2D:{2} '.format(np.int(amplim*100), clean, twoD)    
+        print(str_header)
+    eind = _2D(sa_spectrum, amplim=amplim, verbose=verbose, **kwargs) if twoD else _1D(sa_spectrum, amplim=amplim, verbose=verbose, **kwargs)
     eind = np.squeeze(eind)
+    n_noclean=eind.shape[1]
     if clean : eind = clean_indices(sa_spectrum,sa_lscales, eind,params)
+    n_clean=eind.shape[1]
+    if verbose >= 1: print '\tDone : {0} peaks found ({1} of {3} ({2}%) rejected)'.format(n_clean,n_noclean - n_clean,np.round(100*np.float(n_noclean - n_clean)/n_noclean).astype(int), n_noclean)
     return eind
     
