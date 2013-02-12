@@ -104,7 +104,12 @@ def grid_var(var,hist,ind,method='mean'):
     elif method == 'median' : return md, rms
     else : raise Exception('Unknown averaging method')
 
-def bin_space(lon,lat,eind,amplitude,diameter,relvort,binsize=7,method='mean'):
+def bin_space(lon,lat,eind,amplitude,diameter,relvort,binsize=7,method='mean',verbose=1):
+    
+    if verbose >= 1:
+        str_header = '\t===Time binning parameters===\n\tbinsize:{0}pts, method:{1} '.format(np.int(binsize),method)    
+        print(str_header)
+    
     hist, ind, blon, blat = grid_space(lon,lat,eind[0],binsize=binsize)
     ampmn, amprms= grid_var(amplitude,hist,ind,method=method)
     lenmn, lenrms= grid_var(diameter,hist,ind,method=method)
@@ -114,7 +119,12 @@ def bin_space(lon,lat,eind,amplitude,diameter,relvort,binsize=7,method='mean'):
     
     return blon, blat, hist,  ampmn, lenmn, rvmn, amprms, lenrms, rvrms
 
-def bin_time(time,eind,amplitude,diameter,relvort,binsize=1,method='mean'):
+def bin_time(time,eind,amplitude,diameter,relvort,binsize=1,method='mean',verbose=1):
+    
+    if verbose >= 1:
+        str_header = '\t===Spatial binning parameters===\n\tbinsize:{0}pts, method:{1} '.format(np.int(binsize),method)    
+        print(str_header)
+    
     date,datetime=AT.cnes_convert(time)
     thist,tind,btime=grid_time(time,eind[1],binsize=binsize)
     trvmn,trvrms=grid_var(relvort,thist,tind,method=method)
