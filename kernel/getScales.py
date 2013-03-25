@@ -6,6 +6,7 @@ from scipy import optimize
 from altimetry.tools import grid_track, geost_1d, deriv
 from altimetry.tools.spatial_tools import calcul_distance
 from scipy.optimize.minpack import curve_fit
+from altimetry.tools.others import nearest
 if __debug__ : import matplotlib.pyplot as plt
 import warnings
 
@@ -149,7 +150,7 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
     q=kwargs.pop('q',p)
     filter=kwargs.pop('filter',40.)
     
-    if verbose >= 1 : print '\tsolid_body_scale() running: SLA filtering prior computation of velocities:{0} km, Velocity filtering:{1} km'.format(np.int(filter),np.int(p+q))
+    if verbose >= 1 : print '\tsolid_body_scale() running: SLA filtering prior computation of velocities:{0} km, Velocity filtering:{1} km'.format(np.int(filter) if filter is not None else 'None',np.int(p+q))
     
     xid=ind[1]
     yid=ind[0]
@@ -321,7 +322,11 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
         if (northward): rk_relvort[j]*=-1.
 #        print rk_relvort[j], relvort[j]
         self_advect[j]=Vanom
-        rk_center[j]=np.arange(ncur)[rid]
+        rid_input=nearest(lon,dumlon[np.arange(ncur)[rid]])
+        if calcul_distance(lat[rid_input],lon[rid_input],dumlat[rid],dumlon[rid]) < dx :
+            rk_center[j]=rid_input
+        else :
+            raise Exception('error') 
         dumsla_n[mx_n]
         
 #        try :

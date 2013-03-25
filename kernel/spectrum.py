@@ -15,21 +15,25 @@ if __debug__ : import matplotlib.pyplot as plt
 km2cm = 1e5
 cm2km = km2cm ** (-1.0)
 
-def get_spec(dx,Vin,verbose=False,m=6,gain=1.0,res_factor=10.,integration=False,periodogram=False):
+def get_spec(dx,Vin,verbose=False,m=6,gain=1.0,res_factor=10.,integration=False,periodogram=False,mother='morlet'):
     
     
     #Setup Wavelet Transform parameters
     ###################################
     
-    mother='morlet'
-    
-    scale2len = (4*np.pi) / (m + np.sqrt(2+m*m)) #"fourrier factor" (for Morlet)
-    len2scale = 1/scale2len
+    if mother == 'morlet':
+        scale2len = (4*np.pi) / (m + np.sqrt(2+m*m)) #"fourrier factor" (for Morlet)
+        len2scale = 1/scale2len
+    elif mother=='dog':
+        len2scale = np.sqrt(m+0.5) / (2*np.pi)
+        scale2len = (2*np.pi) / np.sqrt(m+0.5) #"fourrier factor"
+    else :
+        raise Exception('Wavelet function "{0}" is not defined - choose between "morlet" & "dog"')
     
     N=len(Vin)
     
     T = dx*N
-    s0 = 2.0 * dx * len2scale #smallest wavescale (devided by fourier wavelength)
+    s0 = 2.0 * dx if mother == 'morlet' else (2*dx) * len2scale #smallest wavescale (devided by fourier wavelength)
     dj = res_factor * (dx/T) * len2scale #set scale interval (remember this is scaled by s0^(-1/2) ; no units!
     dj0 =  (dx/T) * len2scale
     J = np.fix((np.log((T*len2scale)/s0) / np.log(2.)) / dj).astype(int) #number of scales from s0 to T
