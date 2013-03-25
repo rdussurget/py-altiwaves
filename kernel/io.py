@@ -25,7 +25,8 @@ def save_analysis(filename,
                   daughter,
                   dimensions=None,
                   attributes=None,
-                  verbose=1):
+                  verbose=1,
+                  clobber=True):
     
     #Init netcdf object
     obj=nc(verbose=verbose) #Init NetCDF object
@@ -55,14 +56,14 @@ def save_analysis(filename,
     dataStr['time']={'data':time,'long_name':'time of measurement','units':'days since 1950-01-01 00:00:00UTC','_dimensions':('cycle',)}
     dataStr['cycle']={'data':cycle,'long_name':'cycle number','units':'1','_dimensions':('cycle',)}
     dataStr['track']={'data':track,'long_name':'track number','units':'1','_dimensions':('track',)}
-    dataStr['sla']={'data':sla,'long_name':'sea_level_anomaly','units':'m','_dimensions':('record','cycle')}
-    dataStr['sa_spectrum']={'data':sa_spectrum,'long_name':'scale_averaged_spectrum','units':'m^^2','_dimensions':('record','cycle')}
-    dataStr['sa_lscales']={'data':sa_lscales,'long_name':'spatial_lengthscale','units':'km','_dimensions':('record','cycle')}
-    dataStr['wvsla']={'data':wvsla,'long_name':'filtered_sea_level_anomaly','units':'m','_dimensions':('record','cycle')}
-    dataStr['daughter']={'data':daughter,'long_name':'most_energetic_wavelet','units':'m','_dimensions':('record','cycle')}
+    dataStr['sla']={'data':sla,'long_name':'sea_level_anomaly','units':'m','_dimensions':('cycle','record')}
+    dataStr['sa_spectrum']={'data':sa_spectrum,'long_name':'scale_averaged_spectrum','units':'m^^2','_dimensions':('cycle','record')}
+    dataStr['sa_lscales']={'data':sa_lscales,'long_name':'spatial_lengthscale','units':'km','_dimensions':('cycle','record')}
+    dataStr['wvsla']={'data':wvsla,'long_name':'filtered_sea_level_anomaly','units':'m','_dimensions':('cycle','record')}
+    dataStr['daughter']={'data':daughter,'long_name':'most_energetic_wavelet','units':'m','_dimensions':('cycle','record')}
     
     #Write data
-    res=obj.write(dataStr,filename)
+    res=obj.write(dataStr,filename,clobber=clobber)
     
     return res
 
@@ -73,7 +74,8 @@ def save_detection(filename,
                    amplitude, diameter, relvort, ugdiameter, ugamplitude, rk_relvort, rk_center, self_advect,
                    dimensions=None,
                    attributes=None,
-                   verbose=1):
+                   verbose=1,
+                   clobber=True):
     
     #Init netcdf object
     obj=nc(verbose=verbose) #Init NetCDF object
@@ -112,7 +114,7 @@ def save_detection(filename,
     dataStr['advection']={'data':self_advect,'long_name':'eddy_self_advection','units':'m.s-1','_dimensions':('record',)}
     
     #Write data
-    res=obj.write(dataStr,filename)
+    res=obj.write(dataStr,filename,clobber=clobber)
     
     return res
 
@@ -124,7 +126,8 @@ def save_binning(filename,
                  dimensions=None,
                  attributes=None,
                  description='Climatology of eddy-like processes variability',
-                 verbose=1):
+                 verbose=1,
+                 clobber=True):
     
     
     #Init netcdf object
@@ -179,8 +182,8 @@ def save_binning(filename,
     tfname=os.path.dirname(filename)+'\\time_clim.'+os.path.splitext(os.path.basename(filename))[0]+os.path.splitext(os.path.basename(filename))[1]
     
     #Write data
-    res=obj.write(sStr,sfname)
-    res=obj.write(tStr,tfname)
+    res=obj.write(sStr,sfname,clobber=clobber)
+    res=obj.write(tStr,tfname,clobber=clobber)
     
     return res
 

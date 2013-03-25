@@ -36,10 +36,16 @@ def runAnalysis(lon, lat, time, sla, \
                  m=None, \
                  len_range=[60.,450.], \
                  
+                 #scale interval factor (increase to get shorter scale vector)
+                 dj_factor=1.0,\
+                 
                  #Data processing options
                  detrend=True, \
                  demean=False, \
 #                 high=None, \
+
+                #Output options
+#                periodogram=False,\
                  
                  #Verbose option
                  verbose=True):
@@ -89,7 +95,7 @@ def runAnalysis(lon, lat, time, sla, \
     
     T = max(dstcm)
     s0 = 2.0 * dt if mother == 'morlet' else (2*dt) * len2scale #smallest wavescale (devided by fourier wavelength)
-    dj = (dt/T) * len2scale #set scale interval (remember this is scaled by s0^(-1/2) ; no units!
+    dj = dj_factor * (dt/T) * len2scale #set scale interval (remember this is scaled by s0^(-1/2) ; no units!
     J = np.fix((np.log((T*len2scale)/s0) / np.log(2.)) / dj).astype(int) #number of scales from s0 to T
 #    NJ = np.fix(J+1)
 
@@ -158,6 +164,9 @@ def runAnalysis(lon, lat, time, sla, \
     W = WPower.copy()
     daughter = np.ma.array(np.ones((J+1,nx))*np.complex128(0),mask=np.ones((J+1,nx),dtype=bool))
     
+#    if periodogram:
+#        PerWPower=np.ma.array(np.zeros((J+1,nx,nt),dtype=np.float32),mask=np.ones((J+1,nx),dtype=bool))
+#        PerW = PerWPower.copy()
     
     #Run transform
     ##############
@@ -248,6 +257,13 @@ def runAnalysis(lon, lat, time, sla, \
 #        mask = coimask
         WPower.mask[:]= mask
         W.mask[:]=mask
+        
+        #Show periodogram
+#        plt.contourf(lat,lengthkm,np.abs(W),np.arange(0,0.20,0.005));plt.colorbar();plt.show()
+        #Compare with spectrum
+        
+#        PerWPower[valid,:,:]=WPower
+#        PerW[valid,:,:]=W
         
         #Compute the scaled-average spectrum (eddy band (avg1,avg2)- TC98, eq. 24)
         scale_fg = (lengthkm >= avg1) & (lengthkm <= avg2) #Integration scales

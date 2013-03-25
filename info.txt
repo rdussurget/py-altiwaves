@@ -40,4 +40,9 @@ History :
 		- Added computing temporal variability of parameters.
 		- Added a test case using simulated red noise data.
 		- Tested on DUACS MERSEA NRT & DT products over Med : spatial and temporal variability of eddy properties.
-		- Validation over GoM and BoB : in progress.
+		- Validation over GoM : good agreement over long time series, improved consistency. 
+	° February 2012 :
+	  	- Adapted to 20Hz altimetry data analysis
+		- Added spectral analysis functions (compute mean
+		spectrum and perdiodogram).
+		- Added rankine eddy fitting to data : better estimation of relative vorticity.

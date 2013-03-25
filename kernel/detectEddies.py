@@ -199,8 +199,10 @@ def clean_indices(sa_spectrum,sa_lscales,eind,params):
             if sa_spectrum[yind[i],s] > sa_spectrum[yind[i],x] : toRm=np.append(toRm,i)
             else : toRm=np.append(toRm,s)
 
-        if np.min(np.abs(np.arange(sa_spectrum.shape[1])[sa_spectrum.mask[yind[i],:]] - x)) < 3 :
-            toRm = np.append(toRm,i) #Append to index list if true
+        #Remove masked points if any
+        if sa_spectrum.mask[yind[i],:].sum() > 0 :
+            if np.min(np.abs(np.arange(sa_spectrum.shape[1])[sa_spectrum.mask[yind[i],:]] - x)) < 3 :
+                toRm = np.append(toRm,i) #Append to index list if true
         
         
         
