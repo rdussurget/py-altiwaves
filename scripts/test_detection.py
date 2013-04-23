@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-    TEST_ANALYSIS
+    TEST_DETECTION
     @summary: This is a testing script, which applies the along-track wavelet transform <br />
               to a simulated red noise data set and shows the results.
     @note: The output graph should show two hovmöllers of the scale-averaged spectrum and<br />
@@ -37,15 +37,17 @@ if __name__ == "__main__" :
     #######################################
     
     #Position data set in space and time
-    lat = np.arange(43.0,44.0,0.01)
-    lon = np.arange(6,6.5,0.005)
+    lonlatres=0.002 #Increase this factor if you want faster computation time (lesser resolution)
+    nt=50   #Time steps : decrease it to have faster computations
+    dj_factor=20 #Scale factor wrt. number of elements :  increase it to get faster computation
+    
+    lat = np.arange(43.0,44.0,lonlatres*2) #45 degree track
+    lon = np.arange(6,6.5,lonlatres)
     dst=AT.calcul_distance(lat,lon)
     dx=np.median(AT.deriv(dst))
     N=len(lon)
-    nt=25
     dt=9.9
     time=22705.0 + np.arange(0,nt)*dt
-    dj_factor=20 #Scale factor wrt. number of elements
     
     #Red noise generation (lengthscale > 10 km)
     #sla=np.cumsum(np.random.randn(N*nt)).reshape((nt,N))
@@ -65,6 +67,7 @@ if __name__ == "__main__" :
     res = ke.detection(sa_spectrum,sa_lscales,params,amplim=1.0,clean=True)#np.ones((5,5),dtype=bool))
     
     #Plot results
-    plt.subplot(2,1,1); plt.pcolormesh(dst,time,sa_spectrum); plt.colorbar(); plt.plot(dst[res[0]]+dx/2,time[res[1]]+dt/2,'ok'); plt.subplot(2,1,2); plt.pcolormesh(dst,time,sla - np.repeat(sla.mean(axis=1),N).reshape((nt,N))); plt.colorbar(); plt.plot(dst[res[0]]+dx/2,time[res[1]]+dt/2,'ok'); plt.show()
+    plt.subplot(2,1,1); plt.pcolormesh(dst,time,sa_spectrum);plt.title('Hovmoller of the scale-averaged spectrum'); plt.xlabel('Along-track distance (km)'); plt.ylabel('Energy (cm2)'); plt.colorbar(); plt.plot(dst[res[0]]+dx/2,time[res[1]]+dt/2,'ok');
+    plt.subplot(2,1,2); plt.pcolormesh(dst,time,sla - np.repeat(sla.mean(axis=1),N).reshape((nt,N))); plt.title('Hovmoller of the simulated Sea Level Anomalies'); plt.xlabel('Along-track distance (km)'); plt.ylabel('SLA (cm)');  plt.colorbar(); plt.plot(dst[res[0]]+dx/2,time[res[1]]+dt/2,'ok'); plt.show()
     
     print 'done'

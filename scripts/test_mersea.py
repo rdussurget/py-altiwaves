@@ -28,6 +28,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import altimetry.tools as AT
+from altimetry.data import alti_data
 import kernel as ke
         
 if __name__ == "__main__" :
@@ -59,7 +60,7 @@ if __name__ == "__main__" :
     #Load data
     ##########
 
-    alti=AT.alti_data(alti_pattern,limit=limit,verbose=verbose,time_range=trange) #Load data 
+    alti=alti_data(alti_pattern,limit=limit,verbose=verbose,time_range=trange) #Load data 
     alti.reorder() #2D reordering of the data
     
     track_list = [9]
