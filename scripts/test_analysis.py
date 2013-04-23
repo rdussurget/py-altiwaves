@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import kernel as ke
-import alti_tools as AT
+import altimetry.tools as AT
 import matplotlib.pyplot as plt
 
 
@@ -28,10 +28,13 @@ if __name__ == "__main__" :
     nt=25
     dt=9.9
     time=22705.0 + np.arange(0,nt)*dt
+    dj_factor=20 #Scale factor wrt. number of elements
     
     #Red noise generation (lengthscale > 10 km)
     #sla=np.cumsum(np.random.randn(N*nt)).reshape((nt,N))
     sla=np.ma.array(np.cumsum(np.cumsum(np.random.randn(nt,N),axis=1),axis=0),mask=np.zeros((nt,N),dtype=bool))
+    
+    #Filter small scales
     for i in np.arange(nt):
         sla[i,:]=AT.loess(sla[i,:], dst, 10.)
     
@@ -39,10 +42,10 @@ if __name__ == "__main__" :
     #####################
     
     #WV analysis
-    sa_spectrum, sa_lscales, wvsla, daughtout = ke.runAnalysis(lon,lat,time,sla,len_range=[10,150],w0=0)
+    sa_spectrum, sa_lscales, wvsla, daughter, params = ke.runAnalysis(lon,lat,time,sla,len_range=[10.,150.],m=0,dj_factor=20)
     
     #Detection of energy peaks on scale-averaged spectrum
-    res = ke._2Ddetection(sa_spectrum, sa_lscales, amplim=1.0, win_width=5)
+    res = ke.detection(sa_spectrum,sa_lscales,params,amplim=1.0,clean=True)#np.ones((5,5),dtype=bool))
     
     #Plot results
     plt.subplot(2,1,1); plt.pcolormesh(dst,time,sa_spectrum); plt.colorbar(); plt.plot(dst[res[0]]+dx/2,time[res[1]]+dt/2,'ok'); plt.subplot(2,1,2); plt.pcolormesh(dst,time,sla - np.repeat(sla.mean(axis=1),N).reshape((nt,N))); plt.colorbar(); plt.plot(dst[res[0]]+dx/2,time[res[1]]+dt/2,'ok'); plt.show()
