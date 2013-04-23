@@ -25,10 +25,25 @@ Torrence, C., et G.P. Compo. 1998. « A Practical Guide to Wavelet Analysis »
 
 Special notes:
 --------------
-This package is inteded to be used with the PyValid package.
+This package is intended to be used with the PyValid package.
 
-Author : Renaud DUSSURGET, LER/PAC IFREMER (RD)
+Author : Renaud DUSSURGET, renaud.dussurget
 --------
+
+Licensing & copyright: GNU Lesser General Public License. Copyright 2012 Renaud Dussurget.
+---------------------
+
+	PyAltiWAVES is free software: you can redistribute it and/or modify it under
+	the terms of the GNU Lesser General Public License as published by the Free
+	Software Foundation, either version 3 of the License, or (at your option)
+	any later version.
+	PyAltiWAVES is distributed in the hope that it will be useful, but WITHOUT
+	ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+	FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+	for more details.
+	
+	You should have received a copy of the GNU Lesser General Public License along
+	with PyAltiWAVES.  If not, see <http://www.gnu.org/licenses/>.
 
 History :
 ---------
@@ -41,7 +56,7 @@ History :
 		- Added a test case using simulated red noise data.
 		- Tested on DUACS MERSEA NRT & DT products over Med : spatial and temporal variability of eddy properties.
 		- Validation over GoM : good agreement over long time series, improved consistency. 
-	° February 2012 :
+	° February 2013 :
 	  	- Adapted to 20Hz altimetry data analysis
 		- Added spectral analysis functions (compute mean
 		spectrum and perdiodogram).

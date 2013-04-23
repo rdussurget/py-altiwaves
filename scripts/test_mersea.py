@@ -1,19 +1,36 @@
 # -*- coding: utf-8 -*-
-import numpy as np
-import matplotlib.pyplot as plt
-
-import alti_tools as AT
-import kernel as ke
-        
-if __name__ == "__main__" :
-    '''
+'''
     TEST_MERSEA
     @summary: This is a testing script. It applies the wavelet transform to a DUACS residuals <br />
               data set (as found on AVISO's website), and compute some space/time-averages<br />
               for it.
     @author: Renaud DUSSURGET, LER/PAC IFREMER.
     @change: Create in November 2012 by RD.
-    '''
+    @copyright: Renaud Dussurget 2012.
+    @license: GNU Lesser General Public License
+    
+    This file is part of PyAltiWAVES.
+    
+    PyAltiWAVES is free software: you can redistribute it and/or modify it under
+    the terms of the GNU Lesser General Public License as published by the Free
+    Software Foundation, either version 3 of the License, or (at your option)
+    any later version.
+    PyAltiWAVES is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+    for more details.
+    
+    You should have received a copy of the GNU Lesser General Public License along
+    with PyAltiWAVES.  If not, see <http://www.gnu.org/licenses/>.
+'''
+    
+import numpy as np
+import matplotlib.pyplot as plt
+
+import altimetry.tools as AT
+import kernel as ke
+        
+if __name__ == "__main__" :
     
     limit=[40.0,4,44.5,11.0]
     trange_str = ['01/01/2008','08/05/2012']
