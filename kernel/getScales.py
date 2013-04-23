@@ -1,4 +1,25 @@
 # -*- coding: utf-8 -*-
+'''
+kernel.getScales module
+@since: Created on 12 nov. 2012 by RD
+@author: rdussurg
+@copyright: Renaud Dussurget 2012.
+@license: GNU Lesser General Public License
+    
+    This file is part of PyAltiWAVES.
+    
+    PyAltiWAVES is free software: you can redistribute it and/or modify it under
+    the terms of the GNU Lesser General Public License as published by the Free
+    Software Foundation, either version 3 of the License, or (at your option)
+    any later version.
+    PyAltiWAVES is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+    for more details.
+    
+    You should have received a copy of the GNU Lesser General Public License along
+    with PyAltiWAVES.  If not, see <http://www.gnu.org/licenses/>.
+'''
 import numpy as np
 from  scipy.ndimage.filters import maximum_filter1d
 from scipy.special import gamma
@@ -9,12 +30,6 @@ from scipy.optimize.minpack import curve_fit
 from altimetry.tools.others import nearest
 if __debug__ : import matplotlib.pyplot as plt
 import warnings
-
-'''
-Created on 12 nov. 2012
-
-@author: rdussurg
-'''
 
 def leastsq_bounds( func, x0, bounds, boundsweight=10, **kwargs ):
     """ leastsq with bound conatraints lo <= p <= hi

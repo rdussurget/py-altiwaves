@@ -1,3 +1,25 @@
+'''
+kernel.bins module
+@summary: binning module
+@author: Renaud DUSSURGET, LER/PAC IFREMER.
+@since: Create in November 2012 by RD.
+@copyright: Renaud Dussurget 2012.
+@license: GNU Lesser General Public License
+    
+    This file is part of PyAltiWAVES.
+    
+    PyAltiWAVES is free software: you can redistribute it and/or modify it under
+    the terms of the GNU Lesser General Public License as published by the Free
+    Software Foundation, either version 3 of the License, or (at your option)
+    any later version.
+    PyAltiWAVES is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+    for more details.
+    
+    You should have received a copy of the GNU Lesser General Public License along
+    with PyAltiWAVES.  If not, see <http://www.gnu.org/licenses/>.
+'''
 import numpy as np
 from altimetry.externals.esutils_stat import histogram
 import altimetry.tools as AT

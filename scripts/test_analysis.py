@@ -1,4 +1,29 @@
 # -*- coding: utf-8 -*-
+'''
+    TEST_ANALYSIS
+    @summary: This is a testing script, which applies the along-track wavelet transform <br />
+              to a simulated red noise data set and shows the results.
+    @note: The output graph should show two hovmöllers of the scale-averaged spectrum and<br />
+           simulated sea level, with detected features marked as black circles.
+    @author: Renaud DUSSURGET, LER/PAC IFREMER.
+    @since: Created in November 2012 by RD.
+    @copyright: Renaud Dussurget 2012.
+    @license: GNU Lesser General Public License
+    
+    This file is part of PyAltiWAVES.
+    
+    PyAltiWAVES is free software: you can redistribute it and/or modify it under
+    the terms of the GNU Lesser General Public License as published by the Free
+    Software Foundation, either version 3 of the License, or (at your option)
+    any later version.
+    PyAltiWAVES is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+    for more details.
+    
+    You should have received a copy of the GNU Lesser General Public License along
+    with PyAltiWAVES.  If not, see <http://www.gnu.org/licenses/>. 
+'''
 import numpy as np
 import kernel as ke
 import altimetry.tools as AT
@@ -6,15 +31,7 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__" :
-    '''
-    TEST_ANALYSIS
-    @summary: This is a testing script, which applies the along-track wavelet transform <br />
-              to a simulated red noise data set and shows the results.
-    @note: The output graph should show two hovmöllers of the scale-averaged spectrum and<br />
-           simulated sea level, with detected features marked as black circles.
-    @author: Renaud DUSSURGET, LER/PAC IFREMER.
-    @change: Create in November 2012 by RD.
-    '''
+    
     
     #Simulate sea level data from red noise
     #######################################
