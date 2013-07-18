@@ -10,6 +10,9 @@ DISCLAIMER
     Compo available at http://paos.colorado.edu/research/wavelets/
     and on routines provided by A. Brazhe available at
     http://cell.biophys.msu.ru/static/swan/.
+    
+    Modifications were done by R. Dussurget for implementing the pure
+    gaussian wavelet function (DOG, m=0).
 
     This software may be used, copied, or redistributed as long as it
     is not sold and this copyright notice is reproduced on each copy
@@ -21,6 +24,7 @@ AUTHOR
     email: sebastian@nublia.com
 
 REVISION
+    3 (2013-07-18 10:17 +0200)
     2 (2011-04-28 17:57 -0300)
     1 (2010-12-24 21:59 -0300)
 
@@ -40,7 +44,7 @@ from numpy import (arange, ceil, concatenate, conjugate, cos, exp, isnan, log,
 from numpy.fft import fft, ifft, fftfreq
 from numpy.lib.polynomial import polyval
 from pylab import find
-from scipy.special import gamma
+from scipy.special import gamma, erf
 from scipy.stats import chi2
 from scipy.special.orthogonal import hermitenorm
 
@@ -162,8 +166,15 @@ class dog:
 
     def psi_ft(self, f):
         """Fourier transform of the DOG wavelet."""
-        return ( (((- 1j) ** self.m)) / sqrt(gamma(self.m + 0.5)) ) * (f ** self.m) * \
+        res= ( (((- 1j) ** self.m)) / sqrt(gamma(self.m + 0.5)) ) * (f ** self.m) * \
                 exp(- 0.5 * (f ** 2))
+        if ((self.m == 0) and unbias) :
+            res[0] =  0.0
+            #Below is the proper mathematical way of doing it.
+            #However, this is slightly less effective than setting res[0] to 0.
+#             mnc = ((1.0 / (f.max() - f.min())) * (0.941396 * erf(0.707107 * f.max()) - 0.941396 * erf(0.707107 * f.min()))) 
+#             res[0] -= mnc #corrective term
+        return res
 
     def psi(self, t):
         """DOG wavelet as described in Torrence and Compo (1998)
@@ -180,8 +191,10 @@ class dog:
 
         """
         p = hermitenorm(self.m)
-        return ((-1) ** (self.m + 1) * polyval(p, t) * exp(-t ** 2 / 2) /
+        res= ((-1) ** (self.m + 1) * polyval(p, t) * exp(-t ** 2 / 2) /
                 sqrt(gamma(self.m + 0.5)))
+        if self.m == 0 : res-=res.mean() #remove mean to allow wavelet admissibility!
+        return res
 
     def flambda(self):
         """Fourier wavelength as of Torrence and Compo (1998)"""
