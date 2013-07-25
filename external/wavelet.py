@@ -168,7 +168,7 @@ class dog:
         """Fourier transform of the DOG wavelet."""
         res= ( (((- 1j) ** self.m)) / sqrt(gamma(self.m + 0.5)) ) * (f ** self.m) * \
                 exp(- 0.5 * (f ** 2))
-        if ((self.m == 0) and unbias) :
+        if (self.m == 0) :
             res[0] =  0.0
             #Below is the proper mathematical way of doing it.
             #However, this is slightly less effective than setting res[0] to 0.
