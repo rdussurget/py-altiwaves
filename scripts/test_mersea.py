@@ -94,7 +94,7 @@ if __name__ == "__main__" :
         sa_spectrum, sa_lscales, wvsla, daughter = ke.runAnalysis(lon,lat,time,sla,len_range=[40,150],m=0)
         
         #Detection of energy peaks on scale-averaged spectrum
-        eind = ke._2Ddetection(sa_spectrum, sa_lscales, amplim=0.04)
+        eind = ke.detection(sa_spectrum, sa_lscales, amplim=0.04)
         
         #Sort indexes against time
         isort=np.argsort(time[eind[0]])
@@ -102,38 +102,14 @@ if __name__ == "__main__" :
         eind[1][:]=eind[1][isort]
         
         #Get eddy properties
-        diameter, symmetric= ke.decorrelation_scale(sla, lat, lon, eind)
-        wvdiameter, wvsymmetric = ke.decorrelation_scale(wvsla, lat, lon, eind)
-        ugdiameter, relvort = ke.solid_body_scale(sla, lat, lon, eind)
-        amplitude = ke.eddy_amplitude(np.sqrt(sa_spectrum), eind)*100.
-        cyclone = ke.cyclone(wvsla,eind)
-        
-#        #Sort data against time
-#        isort=np.lexsort((diameter,wvdiameter,ugdiameter,relvort,amplitude,time[eind[0]]))
-#        eind[0][:]=eind[0][isort]
-#        eind[1][:]=eind[1][isort]
-#        diameter[:]=diameter[isort]
-#        wvdiameter[:]=wvdiameter[isort]
-#        ugdiameter[:]=ugdiameter[isort]
-#        relvort[:]=relvort[isort]
-#        amplitude[:]=amplitude[isort]
-        
-        #Rebin results in space
-        hist, ind, blon, blat = ke.grid_space(lon,lat,eind[0])
-        ampmn, amprms= ke.grid_var(amplitude,hist,ind)
-        lenmn, lenrms= ke.grid_var(diameter,hist,ind)
-        wvlenmn, wvlenrms= ke.grid_var(wvdiameter,hist,ind)
-        uglmn, uglrms= ke.grid_var(ugdiameter,hist,ind)
-        rvmn, rvrms= ke.grid_var(relvort,hist,ind)
-        
-        #Rebin results in time
-        date,datetime=AT.cnes_convert(time)
-        thist,tind,btime=ke.grid_time(time,eind[1])
-        trvmn,trvrms=ke.grid_var(relvort,thist,tind)
-        tampmn,tamprms=ke.grid_var(amplitude,thist,tind)
-        tlenmn,tlenrms=ke.grid_var(diameter,thist,tind)
-        twvlmn,twvlrms=ke.grid_var(wvdiameter,thist,tind)
-        tuglmn,tuglrms=ke.grid_var(ugdiameter,thist,tind)
+        print '\n## Eddy characteristics\n##\t1) Whole dataset'
+        amplitude, diameter, relvort, ugdiameter, ugamplitude, rk_relvort, rk_center, rk_diameter, self_advect = \
+            ke.get_characteristics(eind,lon,lat,time,sla,wvsla,sa_spectrum,filter=filter,p=40.0)
+        blon, blat, hist,  ampmn, lenmn, rvmn, amprms, lenrms, rvrms = \
+            ke.bin_space(lon,lat,eind,amplitude,diameter,relvort,method='mean',verbose=verbose,binsize=7)
+        datetime, btime, thist, tampmn, tlenmn, trvmn, tamprms, tlenrms, trvrms = \
+            ke.bin_time(time,eind,amplitude,diameter,relvort,method='mean',verbose=verbose,binsize=3)
+
         
         #Plot results
         #############
@@ -145,11 +121,11 @@ if __name__ == "__main__" :
         pmap=AT.plot_map(0,0,0,limit=alti.limit,resolution='i')
         pmap.title('Spatial evolution of eddy amplitude (cm)') ;pmap.scatter(blon,blat,ampmn,vmin=5,vmax=10,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         pmap.title('Spatial evolution of eddy lengthscale (km)') ;pmap.scatter(blon,blat,lenmn,vmin=50,vmax=80,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
-        pmap.title('Spatial evolution of eddy core scale (km)') ;pmap.scatter(blon,blat,uglmn,vmin=0,vmax=40,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
+#         pmap.title('Spatial evolution of eddy core scale (km)') ;pmap.scatter(blon,blat,uglmn,vmin=0,vmax=40,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         pmap.title('Spatial evolution of relative vorticity (% of f)') ;pmap.scatter(blon,blat,rvmn/AT.coriolis(42.),vmin=0.0,vmax=0.8,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         pmap.title('RMS of eddy amplitude (cm)') ;pmap.scatter(blon,blat,amprms,vmin=0,vmax=5,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         pmap.title('RMS of eddy lengthscale (km)') ;pmap.scatter(blon,blat,lenrms,vmin=0,vmax=50,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
-        pmap.title('RMS  of eddy core scale (km)') ;pmap.scatter(blon,blat,uglrms,vmin=0,vmax=40,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
+#         pmap.title('RMS  of eddy core scale (km)') ;pmap.scatter(blon,blat,uglrms,vmin=0,vmax=40,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         pmap.title('RMS of relative vorticity (% of f)') ;pmap.scatter(blon,blat,rvrms/AT.coriolis(42.),vmin=0,vmax=0.5,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         pmap.title('Eddy observation frequency (%)') ;pmap.scatter(blon,blat,(100.0*hist)/nt,vmin=0,vmax=50,s=50); plt.colorbar(); pmap.setup_map(); pmap.show()
         
@@ -158,13 +134,13 @@ if __name__ == "__main__" :
         plt.subplot(3,1,2);plt.plot(datetime,tampmn);plt.plot(datetime,AT.loess(tampmn, time, 90.));plt.ylabel('Amplitude (cm)');plt.title('Time evolution of eddy amplitude');plt.ylim((0,12));
         plt.subplot(3,1,3);plt.plot(datetime,trvmn/AT.coriolis(42.));plt.plot(datetime,AT.loess(trvmn, time, 90.)/AT.coriolis(42.));plt.xlabel('Date');plt.ylabel('Relative vorticity (% of f)');plt.title('Time evolution of the relative vorticity');plt.ylim((0.,1.0));plt.show()
                 
-        plt.subplot(3,1,1);plt.plot(datetime,tuglmn);plt.plot(datetime,AT.loess(tuglmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.title('Time evolution of eddy lengthscale');plt.ylim((0,50));
+#         plt.subplot(3,1,1);plt.plot(datetime,tuglmn);plt.plot(datetime,AT.loess(tuglmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.title('Time evolution of eddy lengthscale');plt.ylim((0,50));
         plt.subplot(3,1,2);plt.plot(datetime,tampmn);plt.plot(datetime,AT.loess(tampmn, time, 90.));plt.ylabel('Amplitude (cm)');plt.title('Time evolution of eddy amplitude');plt.ylim((0,12));
         plt.subplot(3,1,3);plt.plot(datetime,trvmn/AT.coriolis(42.));plt.plot(datetime,AT.loess(trvmn, time, 90.)/AT.coriolis(42.));plt.xlabel('Date');plt.ylabel('Relative vorticity (% of f)');plt.title('Time evolution of the relative vorticity');plt.ylim((0.,1.0));plt.show()
 
         #Compare decorrelations scales from signal and wavelet plus core scale
         plt.subplot(3,1,1);plt.plot(datetime,tlenmn);plt.plot(datetime,AT.loess(tlenmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.title('Time evolution of eddy lengthscale');plt.ylim((0,150));
-        plt.subplot(3,1,2);plt.plot(datetime,twvlmn);plt.plot(datetime,AT.loess(twvlmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.ylim((0,150));
-        plt.subplot(3,1,3);plt.plot(datetime,tuglmn);plt.plot(datetime,AT.loess(tuglmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.ylim((0,50));plt.show()
+#         plt.subplot(3,1,2);plt.plot(datetime,twvlmn);plt.plot(datetime,AT.loess(twvlmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.ylim((0,150));
+#         plt.subplot(3,1,3);plt.plot(datetime,tuglmn);plt.plot(datetime,AT.loess(tuglmn, time, 90.));plt.ylabel('Lengthscale (km)');plt.ylim((0,50));plt.show()
         
     print 'done'
