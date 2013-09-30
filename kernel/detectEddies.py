@@ -63,9 +63,10 @@ def _2D(sa_spectrum, amplim=0.04, kernel=None, verbose=1): #len_range=[60.,450.]
         xout,yout=np.meshgrid(xx, yy)
         points=zip(*(xout[~sa_spectrum.mask].flatten(), yout[~sa_spectrum.mask].flatten()))
         values=sas.data[~sa_spectrum.mask].flatten()
-        xi=zip(*(xout[sa_spectrum.mask].flatten(), yout[sa_spectrum.mask].flatten()))
-        sas[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear',fill_value=sas.fill_value) #Do not use nearest neighbour with maximum_filter
-        sas.mask[sas.data == sas.fill_value]=True
+        if len(points) > 0:
+            xi=zip(*(xout[sa_spectrum.mask].flatten(), yout[sa_spectrum.mask].flatten()))
+            sas[sa_spectrum.mask]=scipy.interpolate.griddata(points, values, xi, method='linear',fill_value=sas.fill_value) #Do not use nearest neighbour with maximum_filter
+            sas.mask[sas.data == sas.fill_value]=True
     
     #define maximum filter kernel
     if kernel is None :
@@ -113,8 +114,8 @@ def _2D(sa_spectrum, amplim=0.04, kernel=None, verbose=1): #len_range=[60.,450.]
     #Check if peaks are found in unmasked data
     if isinstance(sas,np.ma.masked_array):
         inter=np.array(list(set(zip(*(x,y))).difference(set(zip(*(xout[sa_spectrum.mask].flatten(),yout[sa_spectrum.mask].flatten()))))))
-        x=inter[:,0]
-        y=inter[:,1]
+        if len(inter.shape) == 2: x,y = inter[:,0],inter[:,1]
+        else : x,y = [],[]
 
     return x, y
   
@@ -237,6 +238,8 @@ def detection(sa_spectrum,sa_lscales,params,amplim=0.03,twoD=True,clean=True, ve
     n_noclean=eind.shape[1]
     if clean : eind = clean_indices(sa_spectrum,sa_lscales, eind,params)
     n_clean=eind.shape[1]
-    if verbose >= 1: print '\tDone : {0} peaks found ({1} of {3} ({2}%) rejected)'.format(n_clean,n_noclean - n_clean,np.round(100*np.float(n_noclean - n_clean)/n_noclean).astype(int), n_noclean)
+    if verbose >= 1:
+        if n_clean != 0: print '\tDone : {0} peaks found ({1} of {3} ({2}%) rejected)'.format(n_clean,n_noclean - n_clean,np.round(100*np.float(n_noclean - n_clean)/n_noclean).astype(int), n_noclean)
+        else :  print '[WARNING] No peaks found!' 
     return eind
     
