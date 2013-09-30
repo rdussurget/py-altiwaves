@@ -273,6 +273,7 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
         radius_s = (-fit[1]) / (2 * fit[0]) #This is the minimum value of the 2nd order polynomial
         if (mx_s > 1) and (mx_s < ns - 1) and (mx_n > 1) and (mx_n < ns - 1) :  
             if (radius_s > dst[mx_s-1]) & (radius_s < dst[mx_s+1]) : diameter[j] += radius_s
+            else : diameter[j] += dst[mx_s]
         else :
             diameter[j] += dst[mx_s]
         
@@ -287,8 +288,8 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
         radius_n = (-fit[1]) / (2 * fit[0]) #This is the minimum value of the 2nd order polynomial
         
         if (mx_s > 1) and (mx_s < ns - 1) and (mx_n > 1) and (mx_n < ns - 1) :  
-            if (radius_n > dst[mx_n-1]) & (radius_n < dst[mx_n+1]) :
-                diameter[j] += radius_n
+            if (radius_n > dst[mx_n-1]) & (radius_n < dst[mx_n+1]) : diameter[j] += radius_n
+            else : diameter[j] += dst[mx_n]
         else :
             diameter[j] += dst[mx_n]
         
@@ -298,7 +299,7 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
 #            calcul_distance(dumlat[dumy-mx_s],dumlon[dumy-mx_s],dumlat[dumy+mx_n],dumlon[dumy+mx_n]), \
 #            np.abs(dst[dumy] - dst[dumy+mx_n]) + np.abs(dst[dumy] - dst[dumy-mx_s]) , \
 #            np.abs(dst[mx_n]) + np.abs(dst[mx_s])
-        dumdiam=np.append(dumdiam,np.abs(dst[mx_n]) + np.abs(dst[mx_s])) if j > 0 else [np.abs(dst[mx_n]) + np.abs(dst[mx_s])]
+#         dumdiam=np.append(dumdiam,np.abs(dst[mx_n]) + np.abs(dst[mx_s])) if j > 0 else [np.abs(dst[mx_n]) + np.abs(dst[mx_s])]
 #        dtoto=np.arange(dst[mx_n-1],dst[mx_n+3 if mx_n+3 <= nn else nn])
 #        toto=fit[2]+dtoto*fit[1]+(dtoto**2)*fit[0]
 #        plt.plot(dst[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn],ugeo_n[mx_n-1:mx_n+3 if mx_n+3 <= nn else nn]);plt.plot(dtoto,toto);plt.show()
@@ -319,9 +320,11 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
         V=ugeo_n[mx_n]-Vanom #estimated  circulation (negative northward for cyclones, positive for anticyclones)
         R=(diameter[j] / 2.0) if northward else -(diameter[j] / 2.0) #estimated radius
         dx=np.median(deriv(dst)) #sampling
-#         print ncur,len(dst)
+
+#         print j, len(np.abs(ugeo-Vanom)[np.abs(dst - dst[dumy]) < np.abs(R)])
         rid=np.arange(ncur)[np.abs(dst - dst[dumy]) < np.abs(R)][np.argmin(np.abs(ugeo-Vanom)[np.abs(dst - dst[dumy]) < np.abs(R)])]
-        r=(dst - dst[dumy])[rid] #distance offset to debiased eddy 
+        r=(dst - dst[dumy])[rid] #distance offset to debiased eddy
+         
         
         pn=np.ceil(R/dx) #Number of points to theorical peaks
         u1=ugeo_s[:pn*4][::-1];u2=ugeo_n[1:pn*4]
