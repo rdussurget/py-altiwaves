@@ -194,12 +194,10 @@ def save_binning(filename,
     tStr['relvort_rms']={'data':trvrms,'long_name':'RMS_of_relative_vorticity','units':'s-1','_dimensions':('time',)}
     
     #Setup file name
-    sfname=os.path.dirname(filename)+'\\space_clim.'+os.path.splitext(os.path.basename(filename))[0]+os.path.splitext(os.path.basename(filename))[1]
-    tfname=os.path.dirname(filename)+'\\time_clim.'+os.path.splitext(os.path.basename(filename))[0]+os.path.splitext(os.path.basename(filename))[1]
+    sfname=os.path.dirname(filename)+os.path.sep+'space_clim.'+os.path.splitext(os.path.basename(filename))[0]+os.path.splitext(os.path.basename(filename))[1]
+    tfname=os.path.dirname(filename)+os.path.sep+'time_clim.'+os.path.splitext(os.path.basename(filename))[0]+os.path.splitext(os.path.basename(filename))[1]
     
     #Write data
     res=obj.write(sStr,sfname,clobber=clobber)
-    res=obj.write(tStr,tfname,clobber=clobber)
     
     return res
-
