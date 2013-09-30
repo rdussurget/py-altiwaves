@@ -98,7 +98,7 @@ def runAnalysis(lon, lat, time, sla, \
     #Get distance array
     dst = AT.calcul_distance(lat,lon) #Along-track distance in km
     dstcm = dst * km2cm #convert in centimeters
-    
+        
     #Setup Wavelet Transform parameters
     ###################################
     dt = np.median(AT.deriv(dstcm))
@@ -261,13 +261,14 @@ def runAnalysis(lon, lat, time, sla, \
         # 2) Not significant at 95% (white noise)
         # 3) If confidence interval is too low wrt. smallest integration scale (avg1)
         coimask = np.repeat(coi,J+1).reshape((nx,J+1)).transpose() <= np.repeat(length,nx).reshape((J+1,nx))
-        sig95mask = ~(sig95 > 1)
-        int_fg = coikm < avg1 #RQ THIS MASK IS SIMILAR AND LESS EFFICIENT THAN PREVIOUS ONE
-        int_fg_tab = np.repeat(int_fg,J+1).reshape((nx,J+1)).transpose() #Points where SA spectrum is valid (COI > avg1)
+#         sig95mask = ~(sig95 > 1)
+#         int_fg = coikm < avg1 #RQ THIS MASK IS SIMILAR AND LESS EFFICIENT THAN PREVIOUS ONE
+#         int_fg_tab = np.repeat(int_fg,J+1).reshape((nx,J+1)).transpose() #Points where SA spectrum is valid (COI > avg1)
         data_mask = np.ones((J+1,nx),dtype=bool)
         data_mask[:,fg]=False
 #        mask=(coimask | sig95mask |  int_fg_tab) #Unsure about sig95 mask
-        mask = (coimask | int_fg_tab | data_mask)
+#         mask = (coimask | int_fg_tab | data_mask)
+        mask = (coimask | data_mask)
 #        mask = coimask
         WPower.mask[:]= mask
         W.mask[:]=mask
@@ -333,18 +334,18 @@ def runAnalysis(lon, lat, time, sla, \
     #####
     #TODO : Get this function out of analysis code
     mx = np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool),dtype=np.float)
-    truemx = np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool),dtype=np.float)
+#     truemx = np.ma.array(np.zeros((nt,nx)),mask=np.ones((nt,nx),dtype=bool),dtype=np.float)
     idmx = np.ma.array(np.zeros(nt),mask=np.ones(nt,dtype=bool),dtype=np.float)
     for i in np.arange(nt) :
         ind = sa_spectrum[i,:].argmax()
         mx[i,ind] = sa_spectrum[i,ind]
-        truemx[i,ind] = sla[i,ind]
+#         truemx[i,ind] = sla[i,ind]
         idmx[i]=ind
     
     
     #find maximums
-    mxval = mx.max(axis=1)
-    tmxval = truemx.max(axis=1)
+#     mxval = mx.max(axis=1)
+#     tmxval = truemx.max(axis=1)
 
     if (verbose) : print('o done\n\t=================================')
     

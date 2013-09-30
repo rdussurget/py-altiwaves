@@ -271,8 +271,8 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
             else : fit= np.polyfit(dst[mx_s-2 if mx_s >= 2 else 0:mx_s+2],ugeo_s[mx_s-2 if mx_s >= 2 else 0:mx_s+2], 2)
         else : fit=np.polyfit(dst[mx_s-2 if mx_s >= 2 else 0:mx_s+1],ugeo_s[mx_s-2 if mx_s >= 2 else 0:mx_s+1], 2)
         radius_s = (-fit[1]) / (2 * fit[0]) #This is the minimum value of the 2nd order polynomial
-        if (radius_s > dst[mx_s-1]) & (radius_s < dst[mx_s+1]) :
-            diameter[j] += radius_s
+        if (mx_s > 1) and (mx_s < ns - 1) and (mx_n > 1) and (mx_n < ns - 1) :  
+            if (radius_s > dst[mx_s-1]) & (radius_s < dst[mx_s+1]) : diameter[j] += radius_s
         else :
             diameter[j] += dst[mx_s]
         
@@ -285,8 +285,10 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
             else : fit= np.polyfit(dst[mx_n-2 if mx_n >= 2 else 0:mx_n+2],ugeo_n[mx_n-2 if mx_n >= 2 else 0:mx_n+2], 2)
         else : fit=np.polyfit(dst[mx_n-2 if mx_n >= 2 else 0:mx_n+1],ugeo_n[mx_n-2 if mx_n >= 2 else 0:mx_n+1], 2)
         radius_n = (-fit[1]) / (2 * fit[0]) #This is the minimum value of the 2nd order polynomial
-        if (radius_n > dst[mx_n-1]) & (radius_n < dst[mx_n+1]) :
-            diameter[j] += radius_n
+        
+        if (mx_s > 1) and (mx_s < ns - 1) and (mx_n > 1) and (mx_n < ns - 1) :  
+            if (radius_n > dst[mx_n-1]) & (radius_n < dst[mx_n+1]) :
+                diameter[j] += radius_n
         else :
             diameter[j] += dst[mx_n]
         
@@ -317,6 +319,7 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
         V=ugeo_n[mx_n]-Vanom #estimated  circulation (negative northward for cyclones, positive for anticyclones)
         R=(diameter[j] / 2.0) if northward else -(diameter[j] / 2.0) #estimated radius
         dx=np.median(deriv(dst)) #sampling
+#         print ncur,len(dst)
         rid=np.arange(ncur)[np.abs(dst - dst[dumy]) < np.abs(R)][np.argmin(np.abs(ugeo-Vanom)[np.abs(dst - dst[dumy]) < np.abs(R)])]
         r=(dst - dst[dumy])[rid] #distance offset to debiased eddy 
         
@@ -341,15 +344,16 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
         if calcul_distance(lat[rid_input],lon[rid_input],dumlat[rid],dumlon[rid]) < dx :
             rk_center[j]=rid_input
         else :
-            raise Exception('error') 
-        dumsla_n[mx_n]
+            rk_center[j]=rid
+            print '[kernel.getScales()]WARNING:center has not been offsetted due to its distance to original location'
+#         dumsla_n[mx_n]
         
 #        try :
-#            plt.subplot(2,1,1);plt.title('Eddy #{0} (x:{1} , t:{2})\nRV: rk={3}, lin={4}'.format(j,xid[j],yid[j],rk_relvort[j],relvort[j]))
-#            plt.plot(dst-dst[dumy]-r,dumsla,'-ok',markersize=2);plt.plot(0,dumsla[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,dumsla[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],dumsla[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],dumsla[dumy-mx_s],'og');plt.ylabel('SLA (m)')
-#            dum=rankine_model(dst-dst[dumy]-r, Rout, Vout)
-#            plt.subplot(2,1,2);plt.plot(dst-dst[dumy]-r,ugeo-Vanom,'-k');plt.plot(0,(ugeo-Vanom)[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,(ugeo-Vanom)[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],(ugeo-Vanom)[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],(ugeo-Vanom)[dumy-mx_s],'og');plt.plot(dst-dst[dumy]-r,dum,'-b');plt.ylabel('Velocity anomaly(m.s-1)');plt.xlabel('Distance to offseted center (km)')
-#            plt.show()
+#             plt.subplot(2,1,1);plt.title('Eddy #{0} (x:{1} , t:{2})\nRV: rk={3}, lin={4}'.format(j,xid[j],yid[j],rk_relvort[j],relvort[j]))
+#             plt.plot(dst-dst[dumy]-r,dumsla,'-ok',markersize=2);plt.plot(0,dumsla[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,dumsla[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],dumsla[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],dumsla[dumy-mx_s],'og');plt.ylabel('SLA (m)')
+#             dum=rankine_model(dst-dst[dumy]-r, Rout, Vout)
+#             plt.subplot(2,1,2);plt.plot(dst-dst[dumy]-r,ugeo-Vanom,'-k');plt.plot(0,(ugeo-Vanom)[np.where((dst-dst[dumy]-r) == 0)[0]],'ob');plt.plot(-r,(ugeo-Vanom)[dumy],'or');plt.plot((dst-dst[dumy]-r)[dumy+mx_n],(ugeo-Vanom)[dumy+mx_n],'og');plt.plot((dst-dst[dumy]-r)[dumy-mx_s],(ugeo-Vanom)[dumy-mx_s],'og');plt.plot(dst-dst[dumy]-r,dum,'-b');plt.ylabel('Velocity anomaly(m.s-1)');plt.xlabel('Distance to offseted center (km)')
+#             plt.show()
 #        except :
 #            pass
                 
