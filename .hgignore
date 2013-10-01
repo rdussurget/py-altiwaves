@@ -5,6 +5,9 @@ syntax: glob
 *~
 
 
+.settings/org.eclipse.core.resources.prefs
+.pydevproject
+.project
 syntax: regexp
 ^releases$
 syntax: regexp
