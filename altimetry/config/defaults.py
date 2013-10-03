@@ -28,7 +28,7 @@ class defaults(object):
         '''
         Constructor
         '''
-        self.etopo=subclass(os.path.join('externals%sbathy' %os.path.Sep,'ETOPO2v2g_f4.nc')
-        self.menor=subclass(os.path.join('externals%sbathy'  %os.path.Sep,'bathy_menor.mat')
+        self.etopo=subclass(os.path.join('externals%sbathy' %os.path.sep,'ETOPO2v2g_f4.nc')
+        self.menor=subclass(os.path.join('externals%sbathy'  %os.path.sep,'bathy_menor.mat')
         self.rootDir=os.path.dirname(root_file)
         self.cptDir=os.path.join(self.rootDir,'externals{0}cpt-city{0}'.format(os.path.sep))
