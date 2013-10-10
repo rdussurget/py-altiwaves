@@ -5,7 +5,7 @@ setup(
     version='0.1.0',
     author='R. Dussurget',
     author_email='renaud.dussurget@gmail.com',
-    packages=['kernel', 'altimetry','altimetry.config','altimetry.data','altimetry.tools','altimetry.externals','external'],
+    packages=['kernel','external'],
     scripts=['bin/test_detection.py','bin/test_spectral_analysis.py'],
     url='https://code.google.com/p/py-altiwaves/',
     license='LICENSE.TXT',
@@ -13,6 +13,6 @@ setup(
     long_description=open('README.txt').read(),
     install_requires=[
         "numpy",
-        "NetCDF4"
+        "py-altimetry"
     ],
 )
