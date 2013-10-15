@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='py-altiwaves',
-    version='0.1.0',
+    version='0.2.0',
     author='R. Dussurget',
     author_email='renaud.dussurget@gmail.com',
     packages=['kernel','external'],
