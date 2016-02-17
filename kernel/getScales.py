@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 '''
 kernel.getScales module
-@since: Created on 12 nov. 2012 by RD
-@author: rdussurg
-@copyright: Renaud Dussurget 2012.
-@license: GNU Lesser General Public License
+:change: Created on 12 nov. 2012 by RD
+:author: rdussurg
+:copyright: Renaud Dussurget 2012.
+:license: GNU Lesser General Public License
     
     This file is part of PyAltiWAVES.
     
@@ -32,10 +32,10 @@ if __debug__ : import matplotlib.pyplot as plt
 import warnings
 
 def leastsq_bounds( func, x0, bounds, boundsweight=10, **kwargs ):
-    """ leastsq with bound conatraints lo <= p <= hi
-    run leastsq with additional constraints to minimize the sum of squares of
-        [func(p) ...]
-        + boundsweight * [max( lo_i - p_i, 0, p_i - hi_i ) ...]
+    """
+    run leastsq with bound conatraints lo <= p <= hi
+    leastsq with additional constraints to minimize the sum of squares of
+        [func(p) ...] + boundsweight * [max( lo_i - p_i, 0, p_i - hi_i ) ...]
  
     Parameters
     ----------
@@ -109,55 +109,53 @@ def resid(p, r, u):
 
 def cyclone(sla,ind):
     '''
-    cyclone
-    @summary: Test the rotation sense of detected eddies.
-    @param sla: Along-track sea level anomalies for detected events.
-    @param ind: Indices of the detected events.
-    @return {array}: True if detected events are cyclones.
-    @author: Renaud DUSSURGET, LER/PAC IFREMER.
-    @since : November 2012.
-    @change: Create in November 2012 by RD.
+    Test the rotation sense of detected eddies.
+    :param sla: Along-track sea level anomalies for detected events.
+    :param ind: Indices of the detected events.
+    :return array: True if detected events are cyclones.
+    :author: Renaud DUSSURGET, LER/PAC IFREMER.
+    :since : November 2012.
+    :change: Create in November 2012 by RD.
     '''
     return sla[ind[1],ind[0]] < 0
 
 def eddy_amplitude(sla,ind):
     '''
-    eddy_amplitude
-    @summary: Get the eddy amplitude of detected eddies.
-    @param sla: Along-track sea level anomalies for detected events.
-    @param ind: Indices of the detected events.
-    @return {array}: Amplitudes.
-    @author: Renaud DUSSURGET, LER/PAC IFREMER.
-    @since : November 2012.
-    @change: Create in November 2012 by RD.
+    Get the eddy amplitude of detected eddies.
+    :param sla: Along-track sea level anomalies for detected events.
+    :param ind: Indices of the detected events.
+    :return array: Amplitudes.
+    :author: Renaud DUSSURGET, LER/PAC IFREMER.
+    :since : November 2012.
+    :change: Create in November 2012 by RD.
     '''
     return np.abs(sla[ind[1],ind[0]])
     
 def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
     '''
     solid_body_scale
-    @summary: Compute the diameter of eddy core using maxima of geostrophic velocities<br />
+    :summary: Compute the diameter of eddy core using maxima of geostrophic velocities<br />
               computed on both sides of the eddy, and computes the equivalent Relative<br />
               Vorticity for a solid body rotating eddy.
-    @note: This technique was first applied in Le Hénaff et al., 2012. Cyclonic<br />
-           activity in the eastern Gulf of Mexico: characterization. Submitted to <br />
-           Progress in Oceanography.
-    @note: A 2nd order polynomial over 3-4 points around the velocity maximum is<br />
-           computed to better detect its position.
-    @note: Geostrophic velocities are computed using the Powell and Leben (2004)<br />
-           methodology - powell_leben_filter_km() function. Filtering parameters are<br/>
-           p=q=12km on each sides of the point.
-           Powell, B.S., et R.R. Leben. 2004. « An Optimal Filter for Geostrophic Mesoscale<br/>
-           Currents from Along-Track Satellite Altimetry ». Journal of Atmospheric and<br/>
-           Oceanic Technology 21 (10) (octobre 1): 1633‑1642.
-    @param var: variable on which to apply the analysis : SLA, wavelet-filtered SLA,<br />
+    
+    .. note:: This technique was first applied in Le Hénaff et al., 2012. Cyclonic activity in the eastern Gulf of Mexico: characterization. Submitted to Progress in Oceanography.
+    
+    .. note:: A 2nd order polynomial over 3-4 points around the velocity maximum is computed to better detect its position.
+    
+    .. note::
+        Geostrophic velocities are computed using the Powell and Leben (2004) methodology - powell_leben_filter_km() function. Filtering parameters are p=q=12km on each sides of the point.
+        Powell, B.S., et R.R. Leben. 2004. « An Optimal Filter for Geostrophic Mesoscale Currents from Along-Track Satellite Altimetry ». Journal of Atmospheric and Oceanic Technology 21 (10) (octobre 1): 1633‑1642.
+    
+    :param var: variable on which to apply the analysis : SLA, wavelet-filtered SLA,<br />
                 daughter wavelets, etc...
-    @param lon, lat: Longitude/latitude arrays.
-    @ind: Indices of detected eddies.
-    @return diameter, relvort : Diameter (km) and Relative Vorticity (s-1) of detected eddies.
-    @author: Renaud DUSSURGET, LER/PAC IFREMER.
-    @since : November 2012.
-    @change: Created in November 2012 by RD.
+    :param lon: Longitude array.
+    :param lat: Latitude array.
+    :param ind: Indices of detected eddies.
+    :return:
+        * diameter Diameter (km) of detected eddies.
+        * relvort Relative Vorticity (s-1) of detected eddies.
+    :author: Renaud DUSSURGET, LER/PAC IFREMER.
+    :change: Created in November 2012 by RD.
     '''
     
     #Set defaults values for geostrophic velocities
@@ -370,24 +368,24 @@ def solid_body_scale(var,lat,lon,ind,verbose=1,**kwargs):
 def decorrelation_scale(var,lat,lon,ind, verbose=1):
     '''
     solid_body_scale
-    @summary: Compute the decorrelation length-scale of detected eddies.
-    @note: This is the original technique applied in :
+    :summary: Compute the decorrelation length-scale of detected eddies.
+    :note: This is the original technique applied in :
            Dussurget, R, F Birol, R.A. Morrow, et P. De Mey. 2011. « Fine Resolution<br />
            Altimetry Data for a Regional Application in the Bay of Biscay ». Marine<br />
            Geodesy 2 (34): 1‑30. doi:10.1080/01490419.2011.584835.
-    @note: A linear regression is applied between the two points around the decorrelation<br />
+    :note: A linear regression is applied between the two points around the decorrelation<br />
            scale to better detect its position.
-    @note: If no sufficient data is found on one of both sides, eddy is considered as<br />
+    :note: If no sufficient data is found on one of both sides, eddy is considered as<br />
            symmetric and scales are thus only computed from one side.
-    @param var: variable on which to apply the analysis : SLA, wavelet-filtered SLA,<br />
+    :param var: variable on which to apply the analysis : SLA, wavelet-filtered SLA,<br />
                 daughter wavelets, etc...
-    @param lon, lat: Longitude/latitude arrays.
-    @ind: Indices of detected eddies.
-    @return diameter, symmetric : Diameter (km) of detected eddies, and symmetric flag to<br />
+    :param lon, lat: Longitude/latitude arrays.
+    :ind: Indices of detected eddies.
+    :return diameter, symmetric : Diameter (km) of detected eddies, and symmetric flag to<br />
             check whether symmetry assumption was used or not.
-    @author: Renaud DUSSURGET, LER/PAC IFREMER.
-    @since : November 2012.
-    @change: Create in November 2012 by RD.
+    :author: Renaud DUSSURGET, LER/PAC IFREMER.
+    :since : November 2012.
+    :change: Create in November 2012 by RD.
     '''
     xid=ind[1]
     yid=ind[0]

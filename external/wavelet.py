@@ -81,7 +81,7 @@ class morlet:
 
     def sup(self):
         """Wavelet support defined by the e-Folding time"""
-        return 1. / coi
+        return 1. / self.coi()
 
     def _set_f0(self, f0):
         # Sets the Morlet wave number, the degrees of freedom and the
@@ -132,7 +132,7 @@ class paul:
 
     def sup(self):
         """Wavelet support defined by the e-Folding time"""
-        return 1. / coi
+        return 1. / self.coi()
 
     def _set_m(self, m):
         # Sets the m derivative of a Gaussian, the degrees of freedom and the
@@ -206,7 +206,7 @@ class dog:
 
     def sup(self):
         """Wavelet support defined by the e-Folding time"""
-        return 1. / coi
+        return 1. / self.coi()
 
     def _set_m(self, m):
         # Sets the m derivative of a Gaussian, the degrees of freedom and the

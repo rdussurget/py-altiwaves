@@ -1,12 +1,11 @@
 # -*- coding: latin-1 -*-
 '''
-kernel.io module
-@summary : I/O tools for wavelet analysis
-@requires: altimetry.tools.nctools
-@since: Created on 6 déc. 2012
-@author: rdussurg
-@copyright: Renaud Dussurget 2012.
-@license: GNU Lesser General Public License
+I/O tools for wavelet analysis
+:requires: altimetry.tools.nctools
+:change: Created on 6 déc. 2012
+:author: rdussurg
+:copyright: Renaud Dussurget 2012.
+:license: GNU Lesser General Public License
     
     This file is part of PyAltiWAVES.
     
