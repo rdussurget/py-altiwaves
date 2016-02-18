@@ -187,7 +187,7 @@ def runAnalysis(lon, lat, time, sla, \
     
     #Loop on valid cycles
     for i,valid in enumerate(enough):
-#        print(i,nx)
+        
         process(i,count)
         
         fg = np.isfinite(sla[valid,:]) if not isinstance(sla, np.ma.masked_array) else ~sla[valid,:].mask
@@ -257,9 +257,10 @@ def runAnalysis(lon, lat, time, sla, \
         
         #Mask data
         ##########
-        # 1) Out of confidence interval
-        # 2) Not significant at 95% (white noise)
-        # 3) If confidence interval is too low wrt. smallest integration scale (avg1)
+        # 1) Out of confidence interval --> coimask
+        # 2) Not significant at 95% (white noise) --> sig95mask
+        # 3) If confidence interval is too low wrt. smallest integration scale (avg1) --> int_fg_tab
+        # 4) Reapply input data mask --> data_mask
         coimask = np.repeat(coi,J+1).reshape((nx,J+1)).transpose() <= np.repeat(length,nx).reshape((J+1,nx))
 #         sig95mask = ~(sig95 > 1)
 #         int_fg = coikm < avg1 #RQ THIS MASK IS SIMILAR AND LESS EFFICIENT THAN PREVIOUS ONE
@@ -306,7 +307,7 @@ def runAnalysis(lon, lat, time, sla, \
 #        scale_avg = WPower / scale_avg
 #        scale_avg = std2 * dj * dt / Cd * scale_avg[scale_fg, :].sum(axis=0)
         
-        #
+        #Siginificance test (not used)
         scale_avg_signif, tmp = kernel.wavelet.significance(std2, dt, scale, 2, alpha,
                                     significance_level=slevel, dof=[scale[scale_fg][0],
                                     scale[scale_fg][-1]], wavelet=mother_obj)
@@ -315,10 +316,15 @@ def runAnalysis(lon, lat, time, sla, \
         #Get points for which a valid spectrum value exists
         masked_pts=~(np.fix(~mask).sum(axis=0) > 0)
         
-        scid = np.ma.array(WPower[:,scale_fg].argmax(axis=0),mask=masked_pts)
+        
+        #Get the most energetic feature on current track (position and scale)
         mxid = sa_spectrum[valid,:].argmax()
-        sa_lscales[valid,:]=np.ma.array(lengthkm[scid],mask=scid.mask)
         lenscale[valid]=sa_lscales[valid,:][mxid]
+        
+        #Get the lengthscale of the most energetic features for each position along track
+        scid = np.ma.array(WPower[scale_fg,:].argmax(axis=0),mask=masked_pts)
+        sa_lscales[valid,:]=np.ma.array(lengthkm[scid],mask=scid.mask)
+        
         #Check everyhing (original signal, most energetic lengthscale at each point & scale averaged spectrum)
 #        plt.figure(0);plt.plot(np.ma.array(lengthkm[scid],mask=scid.mask)); plt.figure(1); plt.plot(dum);plt.figure(2);plt.plot(sa_spectrum[valid,:]);plt.show()
         
