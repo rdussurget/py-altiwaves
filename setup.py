@@ -1,8 +1,8 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='py-altiwaves',
-    version='0.2.0',
+    version='0.2.0.post1',
     author='R. Dussurget',
     author_email='renaud.dussurget@gmail.com',
 	packages=['kernel', 'external'],
