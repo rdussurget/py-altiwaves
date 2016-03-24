@@ -10,7 +10,7 @@ setup(
     url='https://code.google.com/p/py-altiwaves/',
     license='LICENSE.TXT',
     description='PyALTIWAVES: Python-based ALong-Track Inventory of WAVelet based EddieS',
-    long_description=open('README.txt').read(),
+    long_description=open('README.md').read(),
     install_requires=[
         "numpy",
         "py-altimetry",
