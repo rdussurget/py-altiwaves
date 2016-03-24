@@ -9,7 +9,7 @@ Wavelet analysis is applied along-track to detect gaussian-shaped signals such a
 
 
 Useful references:
-++++++++++++++++++
+==================
   * Dussurget, R., F. Birol, et R.A. Morrow. in prep. « Constructing fine-scale multi-mission altimeter maps for regional and coastal applications »
 
   * Le Henaff, M., V. H. Kourafalou, R. Dussurget, R. Lumpkin. 2013. « Cyclonic activity in the eastern Gulf of Mexico: characterization from along-track altimetry and in situ drifter trajectories ». Progress in Oceanography, Available online 14 September 2013, ISSN 0079-6611, http://dx.doi.org/10.1016/j.pocean.2013.08.002. (http://www.sciencedirect.com/science/article/pii/S0079661113001626)
@@ -22,11 +22,11 @@ Useful references:
 
 
 Installation :
-++++++++++++++
+==============
 Refer to the `Download <https://code.google.com/p/py-altiwaves/wiki/Download>`_ page.
 
 Special notes:
-++++++++++++++
+=============
 
 Author :
 ========
@@ -34,7 +34,7 @@ Renaud DUSSURGET, renaud.dussurget
 
 Licensing & copyright:
 ======================
-`GNU Lesser General Public License <http://www.gnu.org/licenses/>`_. Copyright 2012 Renaud Dussurget::
+`GNU Lesser General Public License <http://www.gnu.org/licenses/>`. Copyright 2012 Renaud Dussurget::
    
    PyAltiWAVES is free software: you can redistribute it and/or modify it under
    the terms of the GNU Lesser General Public License as published by the Free
@@ -65,3 +65,5 @@ History :
       - Adapted to 20Hz altimetry data analysis
       - Added spectral analysis functions (compute mean spectrum and perdiodogram).
       - Added rankine eddy fitting to data : better estimation of relative vorticity.
+  * March 2016:
+      - Transferred to github and integration of minor corrections/evolutions
