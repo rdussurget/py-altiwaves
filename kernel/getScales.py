@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
 kernel.getScales module
-<<<<<<< HEAD
 :change: Created on 12 nov. 2012 by RD
 :author: rdussurg
 :copyright: Renaud Dussurget 2012.
@@ -11,7 +10,6 @@ kernel.getScales module
 @author: rdussurg
 @copyright: Renaud Dussurget 2012.
 @license: GNU Lesser General Public License
->>>>>>> f8d6cbe917f7d0467188aa8d63e401ac4e4b9cf4
     
     This file is part of PyAltiWAVES.
     
@@ -395,6 +393,7 @@ def decorrelation_scale(var,lat,lon,ind, verbose=1):
     @author: Renaud DUSSURGET, LER/PAC IFREMER.
     @since : November 2012.
     @change: Create in November 2012 by RD.
+
     '''
     xid=ind[1]
     yid=ind[0]
